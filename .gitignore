@@ -1,4 +1,21 @@
+# Visual Studio
 .vs/
+
+# Build output
 bin/
 obj/
+
+# Environment & secrets
 .env
+*.env
+
+# Claude
+.claude/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+
+# Logs
+*.log
