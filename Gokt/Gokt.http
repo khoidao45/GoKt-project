@@ -1,0 +1,6 @@
+@Gokt_HostAddress = http://localhost:5042
+
+GET {{Gokt_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
