@@ -13,3 +13,4 @@ C:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Application\obj\Debug\net8.0\Gokt.
 C:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Application\obj\Debug\net8.0\refint\Gokt.Application.dll
 C:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Application\obj\Debug\net8.0\Gokt.Application.pdb
 C:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Application\obj\Debug\net8.0\ref\Gokt.Application.dll
+C:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Application\obj\Debug\net8.0\Gokt.Application.sourcelink.json
