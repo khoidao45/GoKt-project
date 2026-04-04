@@ -1,5 +1,3 @@
-using Gokt.Domain.Enums;
-
 namespace Gokt.Domain.Entities;
 
 public class UserSession
@@ -7,9 +5,6 @@ public class UserSession
     public Guid Id { get; private set; } = Guid.NewGuid();
     public Guid UserId { get; private set; }
     public string RefreshTokenHash { get; private set; } = default!;
-    public string? DeviceId { get; private set; }
-    public string? DeviceName { get; private set; }
-    public DeviceType? DeviceType { get; private set; }
     public string? IpAddress { get; private set; }
     public string? UserAgent { get; private set; }
     public bool IsRevoked { get; private set; }
@@ -27,9 +22,6 @@ public class UserSession
         Guid userId,
         string refreshTokenHash,
         DateTime expiresAt,
-        string? deviceId = null,
-        string? deviceName = null,
-        DeviceType? deviceType = null,
         string? ipAddress = null,
         string? userAgent = null) =>
         new()
@@ -37,9 +29,6 @@ public class UserSession
             UserId = userId,
             RefreshTokenHash = refreshTokenHash,
             ExpiresAt = expiresAt,
-            DeviceId = deviceId,
-            DeviceName = deviceName,
-            DeviceType = deviceType,
             IpAddress = ipAddress,
             UserAgent = userAgent
         };

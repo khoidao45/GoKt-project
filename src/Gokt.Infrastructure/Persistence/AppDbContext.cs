@@ -13,6 +13,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<OAuthAccount> OAuthAccounts => Set<OAuthAccount>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<Driver> Drivers => Set<Driver>();
+    public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+    public DbSet<RideRequest> RideRequests => Set<RideRequest>();
+    public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<PricingRule> PricingRules => Set<PricingRule>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

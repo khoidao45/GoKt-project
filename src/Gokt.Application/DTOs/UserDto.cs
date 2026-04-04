@@ -40,8 +40,6 @@ public record AuthTokensDto(
 
 public record SessionDto(
     Guid Id,
-    string? DeviceName,
-    string? DeviceType,
     string? IpAddress,
     DateTime CreatedAt,
     DateTime LastUsedAt,

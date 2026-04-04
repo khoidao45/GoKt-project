@@ -1,8 +1,11 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Gokt.Application;
+using Gokt.Application.Interfaces;
+using Gokt.Hubs;
 using Gokt.Infrastructure;
 using Gokt.Middleware;
+using Gokt.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -20,6 +23,9 @@ builder.Services
         opts.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
+// ── SignalR ───────────────────────────────────────────────────────────────────
+builder.Services.AddSignalR();
+
 // ── Swagger / OpenAPI ─────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -28,7 +34,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Gokt API",
         Version = "v1",
-        Description = "Authentication & User Management Service for Gokt ride-hailing platform"
+        Description = "Ride-Hailing Backend Service"
     });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -72,20 +78,43 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
             ClockSkew = TimeSpan.FromSeconds(30)
         };
+
+        // SignalR sends the JWT via query string ?access_token=
+        opts.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var accessToken = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    ctx.HttpContext.Request.Path.StartsWithSegments("/hubs/ride"))
+                {
+                    ctx.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
+// ── CORS — AllowCredentials required for SignalR ───────────────────────────────
 builder.Services.AddCors(opts =>
 {
-    opts.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    opts.AddPolicy("SignalR", policy =>
+        policy
+            .SetIsOriginAllowed(_ => true) // Configure specific origins in production
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials()); // Required for SignalR WebSocket transport
 });
 
 // ── Application & Infrastructure ─────────────────────────────────────────────
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// ── IRealtimeService — registered here because SignalRRealtimeService
+//    depends on IHubContext<RideHub> which lives in the API project ────────────
+builder.Services.AddScoped<IRealtimeService, SignalRRealtimeService>();
 
 // ── Build ─────────────────────────────────────────────────────────────────────
 var app = builder.Build();
@@ -102,15 +131,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Gokt API v1");
-        c.RoutePrefix = string.Empty; // Swagger UI at root URL
+        c.RoutePrefix = string.Empty;
     });
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+app.UseCors("SignalR");
 app.UseAuthentication();
-app.UseMiddleware<JwtBlacklistMiddleware>(); // must run after auth (needs User claims) and before authorization
+app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<RideHub>("/hubs/ride");
 
 app.Run();

@@ -64,6 +64,127 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                     b.ToTable("AuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("Gokt.Domain.Entities.Driver", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<double?>("CurrentLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("CurrentLongitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("DriverCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsBusy")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastLocationUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LicenseExpiry")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LicenseNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Rating")
+                        .HasPrecision(3, 1)
+                        .HasColumnType("numeric(3,1)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("TotalRides")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverCode")
+                        .IsUnique()
+                        .HasFilter("\"DriverCode\" IS NOT NULL");
+
+                    b.HasIndex("IsOnline");
+
+                    b.HasIndex("LicenseNumber")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.HasIndex("IsOnline", "IsBusy");
+
+                    b.ToTable("Drivers", (string)null);
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Data")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("Notifications", (string)null);
+                });
+
             modelBuilder.Entity("Gokt.Domain.Entities.OAuthAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -103,6 +224,171 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                     b.ToTable("OAuthAccounts", (string)null);
                 });
 
+            modelBuilder.Entity("Gokt.Domain.Entities.PricingRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BaseFare")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MinimumFare")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal>("PerKmRate")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<decimal>("PerMinuteRate")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)");
+
+                    b.Property<decimal>("SurgeMultiplier")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("numeric(4,2)");
+
+                    b.Property<string>("VehicleType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleType")
+                        .IsUnique();
+
+                    b.ToTable("PricingRules", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b1b1b1b1-0000-0000-0000-000000000001"),
+                            BaseFare = 1.50m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            MinimumFare = 3.00m,
+                            PerKmRate = 0.80m,
+                            PerMinuteRate = 0.15m,
+                            SurgeMultiplier = 1.0m,
+                            VehicleType = "Economy"
+                        },
+                        new
+                        {
+                            Id = new Guid("b1b1b1b1-0000-0000-0000-000000000002"),
+                            BaseFare = 2.00m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            MinimumFare = 5.00m,
+                            PerKmRate = 1.20m,
+                            PerMinuteRate = 0.20m,
+                            SurgeMultiplier = 1.0m,
+                            VehicleType = "Comfort"
+                        },
+                        new
+                        {
+                            Id = new Guid("b1b1b1b1-0000-0000-0000-000000000003"),
+                            BaseFare = 3.00m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            MinimumFare = 8.00m,
+                            PerKmRate = 2.00m,
+                            PerMinuteRate = 0.30m,
+                            SurgeMultiplier = 1.0m,
+                            VehicleType = "Premium"
+                        },
+                        new
+                        {
+                            Id = new Guid("b1b1b1b1-0000-0000-0000-000000000004"),
+                            BaseFare = 2.50m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            MinimumFare = 6.00m,
+                            PerKmRate = 1.50m,
+                            PerMinuteRate = 0.25m,
+                            SurgeMultiplier = 1.0m,
+                            VehicleType = "XL"
+                        });
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.RideRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DriverCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("DropoffAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<double>("DropoffLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("DropoffLongitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<decimal?>("EstimatedDistanceKm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<decimal>("EstimatedFare")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PickupAddress")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<double>("PickupLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("PickupLongitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("RequestedVehicleType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("RideRequests", (string)null);
+                });
+
             modelBuilder.Entity("Gokt.Domain.Entities.Role", b =>
                 {
                     b.Property<Guid>("Id")
@@ -135,7 +421,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 4, 2, 20, 12, 57, 146, DateTimeKind.Utc).AddTicks(8898),
+                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5516),
                             Description = "Can book trips",
                             IsSystem = true,
                             Name = "RIDER"
@@ -143,7 +429,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2026, 4, 2, 20, 12, 57, 146, DateTimeKind.Utc).AddTicks(8902),
+                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5528),
                             Description = "Can accept and complete trips",
                             IsSystem = true,
                             Name = "DRIVER"
@@ -151,7 +437,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2026, 4, 2, 20, 12, 57, 146, DateTimeKind.Utc).AddTicks(8904),
+                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5530),
                             Description = "Platform administrator",
                             IsSystem = true,
                             Name = "ADMIN"
@@ -159,11 +445,94 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2026, 4, 2, 20, 12, 57, 146, DateTimeKind.Utc).AddTicks(8906),
+                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5532),
                             Description = "Customer support agent",
                             IsSystem = true,
                             Name = "SUPPORT"
                         });
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.Trip", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("ActualDistanceKm")
+                        .HasPrecision(8, 2)
+                        .HasColumnType("numeric(8,2)");
+
+                    b.Property<int?>("ActualDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("CustomerRating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CustomerRatingComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("DriverArrivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("DriverRating")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DriverRatingComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal?>("FinalFare")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<Guid>("RideRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("RideRequestId")
+                        .IsUnique();
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("Trips", (string)null);
                 });
 
             modelBuilder.Entity("Gokt.Domain.Entities.User", b =>
@@ -345,18 +714,6 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("DeviceId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("DeviceName")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("DeviceType")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -401,6 +758,84 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                     b.ToTable("UserSessions", (string)null);
                 });
 
+            modelBuilder.Entity("Gokt.Domain.Entities.Vehicle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DriverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Make")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PlateNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("VehicleType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverId");
+
+                    b.HasIndex("PlateNumber")
+                        .IsUnique();
+
+                    b.ToTable("Vehicles", (string)null);
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.Driver", b =>
+                {
+                    b.HasOne("Gokt.Domain.Entities.User", "User")
+                        .WithOne()
+                        .HasForeignKey("Gokt.Domain.Entities.Driver", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("Gokt.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Gokt.Domain.Entities.OAuthAccount", b =>
                 {
                     b.HasOne("Gokt.Domain.Entities.User", "User")
@@ -410,6 +845,52 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.RideRequest", b =>
+                {
+                    b.HasOne("Gokt.Domain.Entities.User", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.Trip", b =>
+                {
+                    b.HasOne("Gokt.Domain.Entities.User", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Gokt.Domain.Entities.Driver", "Driver")
+                        .WithMany("Trips")
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Gokt.Domain.Entities.RideRequest", "RideRequest")
+                        .WithOne("Trip")
+                        .HasForeignKey("Gokt.Domain.Entities.Trip", "RideRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Gokt.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("RideRequest");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("Gokt.Domain.Entities.UserProfile", b =>
@@ -462,6 +943,29 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.Vehicle", b =>
+                {
+                    b.HasOne("Gokt.Domain.Entities.Driver", "Driver")
+                        .WithMany("Vehicles")
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Driver");
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.Driver", b =>
+                {
+                    b.Navigation("Trips");
+
+                    b.Navigation("Vehicles");
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.RideRequest", b =>
+                {
+                    b.Navigation("Trip");
                 });
 
             modelBuilder.Entity("Gokt.Domain.Entities.Role", b =>

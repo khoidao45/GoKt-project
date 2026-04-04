@@ -7,7 +7,6 @@ using Gokt.Application.Commands.Auth.Register;
 using Gokt.Application.Commands.Auth.ResetPassword;
 using Gokt.Application.Commands.Auth.VerifyEmail;
 using Gokt.Application.DTOs;
-using Gokt.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +29,6 @@ public class AuthController(IMediator mediator) : ControllerBase
     {
         var result = await mediator.Send(new RegisterCommand(
             req.Email, req.Password, req.FirstName, req.LastName, req.Phone,
-            GetDeviceId(), req.DeviceName, req.DeviceType,
             GetClientIp(), Request.Headers.UserAgent.ToString()), ct);
 
         return StatusCode(201, result);
@@ -45,7 +43,6 @@ public class AuthController(IMediator mediator) : ControllerBase
     {
         var result = await mediator.Send(new LoginCommand(
             req.Email, req.Password,
-            GetDeviceId(), req.DeviceName, req.DeviceType,
             GetClientIp(), Request.Headers.UserAgent.ToString()), ct);
 
         SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiry);
@@ -140,9 +137,6 @@ public class AuthController(IMediator mediator) : ControllerBase
     private string? GetClientIp() =>
         HttpContext.Connection.RemoteIpAddress?.ToString();
 
-    private string? GetDeviceId() =>
-        Request.Headers["X-Device-Id"].FirstOrDefault();
-
     private void SetRefreshTokenCookie(string token, DateTime expiry)
     {
         Response.Cookies.Append("refresh_token", token, new CookieOptions
@@ -163,16 +157,12 @@ public record RegisterRequest(
     string Password,
     string FirstName,
     string LastName,
-    string? Phone,
-    string? DeviceName,
-    DeviceType? DeviceType
+    string? Phone
 );
 
 public record LoginRequest(
     string Email,
-    string Password,
-    string? DeviceName,
-    DeviceType? DeviceType
+    string Password
 );
 
 public record RefreshRequest(string RefreshToken);

@@ -2,7 +2,6 @@ using FluentValidation;
 using Gokt.Application.DTOs;
 using Gokt.Application.Interfaces;
 using Gokt.Domain.Entities;
-using Gokt.Domain.Enums;
 using Gokt.Domain.Exceptions;
 using MediatR;
 
@@ -14,9 +13,6 @@ public record RegisterCommand(
     string FirstName,
     string LastName,
     string? Phone,
-    string? DeviceId,
-    string? DeviceName,
-    DeviceType? DeviceType,
     string? IpAddress,
     string? UserAgent
 ) : IRequest<AuthTokensDto>;
@@ -92,7 +88,7 @@ public sealed class RegisterCommandHandler(
 
         var session = UserSession.Create(
             user.Id, tokenService.HashToken(rawRefresh), refreshExpiry,
-            cmd.DeviceId, cmd.DeviceName, cmd.DeviceType, cmd.IpAddress, cmd.UserAgent);
+            cmd.IpAddress, cmd.UserAgent);
 
         user.Sessions.Add(session);
         await unitOfWork.SaveChangesAsync(ct);

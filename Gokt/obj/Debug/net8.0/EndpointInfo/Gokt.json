@@ -364,6 +364,686 @@
         }
       }
     },
+    "/api/v1/drivers/register": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDriverRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDriverRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDriverRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DriverDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/vehicles": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddVehicleRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddVehicleRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddVehicleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/online": {
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleOnlineRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleOnlineRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleOnlineRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/location": {
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLocationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLocationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLocationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/nearby": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "lng",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "radius",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "default": 5
+            }
+          },
+          {
+            "name": "vehicleType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/VehicleType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DriverDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/drivers/trips": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TripDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/read": {
+      "put": {
+        "tags": [
+          "Notifications"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/rides/estimate": {
+      "get": {
+        "tags": [
+          "Rides"
+        ],
+        "parameters": [
+          {
+            "name": "pickupLat",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "pickupLng",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "dropoffLat",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "dropoffLng",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          },
+          {
+            "name": "vehicleType",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/VehicleType"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceEstimateDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rides/request": {
+      "post": {
+        "tags": [
+          "Rides"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRideRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRideRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRideRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RideRequestDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rides/{id}/accept": {
+      "post": {
+        "tags": [
+          "Rides"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rides/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Rides"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRideBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRideBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelRideBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/rides/active": {
+      "get": {
+        "tags": [
+          "Rides"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveRideDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trips/{id}/status": {
+      "put": {
+        "tags": [
+          "Trips"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trips/{id}/complete": {
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTripRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTripRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTripRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TripDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/trips/{id}/rate": {
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateTripRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateTripRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RateTripRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/v1/trips/history": {
+      "get": {
+        "tags": [
+          "Trips"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TripDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "tags": [
@@ -469,6 +1149,47 @@
   },
   "components": {
     "schemas": {
+      "ActiveRideDto": {
+        "type": "object",
+        "properties": {
+          "rideRequest": {
+            "$ref": "#/components/schemas/RideRequestDto"
+          },
+          "trip": {
+            "$ref": "#/components/schemas/TripDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddVehicleRequest": {
+        "type": "object",
+        "properties": {
+          "make": {
+            "type": "string",
+            "nullable": true
+          },
+          "model": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "plateNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleType": {
+            "$ref": "#/components/schemas/VehicleType"
+          }
+        },
+        "additionalProperties": false
+      },
       "AuthTokensDto": {
         "type": "object",
         "properties": {
@@ -494,6 +1215,16 @@
         },
         "additionalProperties": false
       },
+      "CancelRideBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ChangePasswordRequest": {
         "type": "object",
         "properties": {
@@ -508,12 +1239,103 @@
         },
         "additionalProperties": false
       },
-      "DeviceType": {
+      "CompleteTripRequest": {
+        "type": "object",
+        "properties": {
+          "actualDistanceKm": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateRideRequestBody": {
+        "type": "object",
+        "properties": {
+          "pickupLatitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "pickupLongitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "pickupAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "dropoffLatitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "dropoffLongitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "dropoffAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleType": {
+            "$ref": "#/components/schemas/VehicleType"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DriverDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fullName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/DriverStatus"
+          },
+          "rating": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalRides": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isOnline": {
+            "type": "boolean"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "vehicles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VehicleDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DriverStatus": {
         "enum": [
-          "Mobile",
-          "Web",
-          "Tablet",
-          "Api"
+          "Pending",
+          "Active",
+          "Suspended"
         ],
         "type": "string"
       },
@@ -537,13 +1359,6 @@
           "password": {
             "type": "string",
             "nullable": true
-          },
-          "deviceName": {
-            "type": "string",
-            "nullable": true
-          },
-          "deviceType": {
-            "$ref": "#/components/schemas/DeviceType"
           }
         },
         "additionalProperties": false
@@ -552,6 +1367,81 @@
         "type": "object",
         "properties": {
           "refreshToken": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MarkReadRequest": {
+        "type": "object",
+        "properties": {
+          "notificationIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "$ref": "#/components/schemas/NotificationType"
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NotificationType": {
+        "enum": [
+          "RideRequest",
+          "RideAccepted",
+          "DriverArriving",
+          "TripStarted",
+          "TripCompleted",
+          "Cancelled",
+          "General"
+        ],
+        "type": "string"
+      },
+      "PriceEstimateDto": {
+        "type": "object",
+        "properties": {
+          "vehicleType": {
+            "$ref": "#/components/schemas/VehicleType"
+          },
+          "estimatedFare": {
+            "type": "number",
+            "format": "double"
+          },
+          "estimatedDistanceKm": {
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
             "type": "string",
             "nullable": true
           }
@@ -585,12 +1475,40 @@
         },
         "additionalProperties": { }
       },
+      "RateTripRequest": {
+        "type": "object",
+        "properties": {
+          "rating": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RefreshRequest": {
         "type": "object",
         "properties": {
           "refreshToken": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RegisterDriverRequest": {
+        "type": "object",
+        "properties": {
+          "licenseNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseExpiry": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -617,13 +1535,6 @@
           "phone": {
             "type": "string",
             "nullable": true
-          },
-          "deviceName": {
-            "type": "string",
-            "nullable": true
-          },
-          "deviceType": {
-            "$ref": "#/components/schemas/DeviceType"
           }
         },
         "additionalProperties": false
@@ -642,20 +1553,82 @@
         },
         "additionalProperties": false
       },
-      "SessionDto": {
+      "RideRequestDto": {
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
           },
-          "deviceName": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pickupAddress": {
             "type": "string",
             "nullable": true
           },
-          "deviceType": {
+          "pickupLatitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "pickupLongitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "dropoffAddress": {
             "type": "string",
             "nullable": true
+          },
+          "dropoffLatitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "dropoffLongitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "vehicleType": {
+            "$ref": "#/components/schemas/VehicleType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RideStatus"
+          },
+          "estimatedFare": {
+            "type": "number",
+            "format": "double"
+          },
+          "estimatedDistanceKm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RideStatus": {
+        "enum": [
+          "Pending",
+          "Accepted",
+          "Cancelled",
+          "Expired"
+        ],
+        "type": "string"
+      },
+      "SessionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
           },
           "ipAddress": {
             "type": "string",
@@ -675,6 +1648,125 @@
           },
           "isCurrent": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ToggleOnlineRequest": {
+        "type": "object",
+        "properties": {
+          "isOnline": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TripDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rideRequestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "driverId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "vehicleId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TripStatus"
+          },
+          "pickupAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "dropoffAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "finalFare": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDistanceKm": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "actualDurationMinutes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancelledAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "cancellationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerRating": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "driverRating": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TripStatus": {
+        "enum": [
+          "Accepted",
+          "DriverEnRoute",
+          "DriverArrived",
+          "InProgress",
+          "Completed",
+          "Cancelled"
+        ],
+        "type": "string"
+      },
+      "UpdateLocationRequest": {
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -706,6 +1798,15 @@
           "address": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateStatusRequest": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/TripStatus"
           }
         },
         "additionalProperties": false
@@ -763,6 +1864,51 @@
           "Active",
           "Suspended",
           "Deleted"
+        ],
+        "type": "string"
+      },
+      "VehicleDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "make": {
+            "type": "string",
+            "nullable": true
+          },
+          "model": {
+            "type": "string",
+            "nullable": true
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "plateNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleType": {
+            "$ref": "#/components/schemas/VehicleType"
+          },
+          "isVerified": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VehicleType": {
+        "enum": [
+          "Economy",
+          "Comfort",
+          "Premium",
+          "XL"
         ],
         "type": "string"
       },

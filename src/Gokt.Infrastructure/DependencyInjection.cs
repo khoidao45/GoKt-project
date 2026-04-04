@@ -1,10 +1,13 @@
 using Gokt.Application.Interfaces;
+using Gokt.Infrastructure.BackgroundServices;
 using Gokt.Infrastructure.Persistence;
 using Gokt.Infrastructure.Repositories;
 using Gokt.Infrastructure.Services;
+using Gokt.Infrastructure.Services.Matching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace Gokt.Infrastructure;
 
@@ -23,6 +26,9 @@ public static class DependencyInjection
         if (!string.IsNullOrEmpty(redisConnection))
         {
             services.AddStackExchangeRedisCache(opts => opts.Configuration = redisConnection);
+            // Register IConnectionMultiplexer for direct GEO / SET NX operations
+            services.AddSingleton<IConnectionMultiplexer>(
+                ConnectionMultiplexer.Connect(redisConnection));
         }
         else
         {
@@ -34,6 +40,12 @@ public static class DependencyInjection
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IDriverRepository, DriverRepository>();
+        services.AddScoped<IVehicleRepository, VehicleRepository>();
+        services.AddScoped<IRideRequestRepository, RideRequestRepository>();
+        services.AddScoped<ITripRepository, TripRepository>();
+        services.AddScoped<IPricingRepository, PricingRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         // Services
         services.AddScoped<ITokenService, TokenService>();
@@ -41,6 +53,13 @@ public static class DependencyInjection
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ICacheService, CacheService>();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IPricingService, PricingService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<ILocationService, RedisLocationService>();
+        services.AddScoped<IMatchingService, MatchingService>();
+        services.AddScoped<AutoMatchingStrategy>();
+        services.AddScoped<DriverCodeMatchingStrategy>();
+        services.AddHostedService<RideExpiryWorker>();
 
         return services;
     }

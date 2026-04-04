@@ -12,9 +12,6 @@ public class UserSessionConfiguration : IEntityTypeConfiguration<UserSession>
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.RefreshTokenHash).IsRequired().HasMaxLength(512);
-        builder.Property(s => s.DeviceId).HasMaxLength(255);
-        builder.Property(s => s.DeviceName).HasMaxLength(255);
-        builder.Property(s => s.DeviceType).HasConversion<string>().HasMaxLength(20);
         builder.Property(s => s.IpAddress).HasMaxLength(45);
         builder.Property(s => s.UserAgent).HasMaxLength(512);
         builder.Property(s => s.RevokedAt);

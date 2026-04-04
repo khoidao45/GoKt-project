@@ -2,7 +2,6 @@ using FluentValidation;
 using Gokt.Application.DTOs;
 using Gokt.Application.Interfaces;
 using Gokt.Domain.Entities;
-using Gokt.Domain.Enums;
 using Gokt.Domain.Exceptions;
 using MediatR;
 
@@ -11,9 +10,6 @@ namespace Gokt.Application.Commands.Auth.Login;
 public record LoginCommand(
     string Email,
     string Password,
-    string? DeviceId,
-    string? DeviceName,
-    DeviceType? DeviceType,
     string? IpAddress,
     string? UserAgent
 ) : IRequest<AuthTokensDto>;
@@ -92,7 +88,7 @@ public sealed class LoginCommandHandler(
 
         var session = UserSession.Create(
             user.Id, tokenService.HashToken(rawRefresh), refreshExpiry,
-            cmd.DeviceId, cmd.DeviceName, cmd.DeviceType, cmd.IpAddress, cmd.UserAgent);
+            cmd.IpAddress, cmd.UserAgent);
 
         user.Security.RecordSuccessfulLogin(cmd.IpAddress ?? "unknown");
         await sessionRepository.AddAsync(session, ct);

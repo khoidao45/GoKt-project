@@ -14,13 +14,11 @@ public sealed class GetUserSessionsQueryHandler(ISessionRepository sessionReposi
         var sessions = await sessionRepository.GetActiveByUserIdAsync(query.UserId, ct);
         return sessions.Select(s => new SessionDto(
             s.Id,
-            s.DeviceName,
-            s.DeviceType?.ToString(),
             s.IpAddress,
             s.CreatedAt,
             s.LastUsedAt,
             s.ExpiresAt,
-            IsCurrent: false // controller can mark current by comparing session id
+            IsCurrent: false
         ));
     }
 }
