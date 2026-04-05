@@ -1,5 +1,7 @@
+using System.Text.Json;
 using FluentValidation;
 using Gokt.Application.DTOs;
+using Gokt.Application.Events;
 using Gokt.Application.Interfaces;
 using Gokt.Domain.Entities;
 using Gokt.Domain.Enums;
@@ -37,7 +39,7 @@ public sealed class CreateRideRequestCommandValidator : AbstractValidator<Create
 public sealed class CreateRideRequestCommandHandler(
     IRideRequestRepository rideRequestRepository,
     IPricingService pricingService,
-    IMatchingService matchingService,
+    IOutboxRepository outboxRepository,          // replaces IEventPublisher
     INotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CreateRideRequestCommand, RideRequestDto>
 {
@@ -68,12 +70,34 @@ public sealed class CreateRideRequestCommandHandler(
             "Ride Requested", "Looking for a driver near you...",
             Domain.Enums.NotificationType.RideRequest, null, ct);
 
-        // Transition to Searching and start the matching engine
+        // Transition to Searching
         request.StartSearching();
-        await unitOfWork.SaveChangesAsync(ct);
 
-        // Fire-and-forget: matching runs in background, HTTP response returns immediately
-        _ = matchingService.StartMatchingAsync(request.Id, CancellationToken.None);
+        // ── OUTBOX PATTERN ────────────────────────────────────────────────────
+        // Build the event and stage both the status update and the outbox entry
+        // in the SAME SaveChangesAsync call — guaranteed atomic with PostgreSQL.
+        var rideEvent = new RideRequestedEvent(
+            request.Id,
+            request.CustomerId,
+            request.PickupLatitude, request.PickupLongitude, request.PickupAddress,
+            request.DropoffLatitude, request.DropoffLongitude, request.DropoffAddress,
+            request.RequestedVehicleType.ToString(),
+            request.EstimatedFare,
+            request.EstimatedDistanceKm,
+            request.DriverCode,
+            request.ExpiresAt,
+            DateTime.UtcNow);
+
+        var outboxEvent = OutboxEvent.Create(
+            type:       KafkaTopics.RideRequested,
+            messageKey: request.Id.ToString(),
+            payload:    JsonSerializer.Serialize(rideEvent));
+
+        await outboxRepository.AddAsync(outboxEvent, ct);
+
+        // Single SaveChanges: persists RideRequest status change + OutboxEvent atomically
+        await unitOfWork.SaveChangesAsync(ct);
+        // ─────────────────────────────────────────────────────────────────────
 
         return RideRequestDto.From(request);
     }

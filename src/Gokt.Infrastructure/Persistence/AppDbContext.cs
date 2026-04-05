@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<PricingRule> PricingRules => Set<PricingRule>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

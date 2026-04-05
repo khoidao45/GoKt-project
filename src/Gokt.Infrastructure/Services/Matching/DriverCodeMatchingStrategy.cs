@@ -1,19 +1,19 @@
 using Gokt.Application.Interfaces;
-using Gokt.Domain.Enums;
-using Gokt.Domain.Entities;
-using Gokt.Domain.Exceptions;
+using Gokt.Application.Commands.Rides.AcceptRideRequest;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Gokt.Application.Commands.Rides.AcceptRideRequest;
 
 namespace Gokt.Infrastructure.Services.Matching;
 
 public class DriverCodeMatchingStrategy(
     IDriverRepository driverRepository,
+    ILocationService locationService,
     IMediator mediator,
     ILogger<DriverCodeMatchingStrategy> logger) : IMatchingStrategy
 {
     public MatchingStrategyType StrategyType => MatchingStrategyType.DriverCode;
+
+    private const double ProximityRadiusKm = 2.0;
 
     public async Task<MatchResult> ExecuteAsync(MatchingContext context, CancellationToken ct)
     {
@@ -34,17 +34,31 @@ public class DriverCodeMatchingStrategy(
 
         if (!driver.IsOnline)
         {
-            logger.LogWarning("DriverCode {Code} driver {DriverId} is offline", context.DriverCode, driver.Id);
+            logger.LogWarning("DriverCode {Code}: driver {DriverId} is offline, falling back to Auto",
+                context.DriverCode, driver.Id);
             return new MatchResult(false, FailureReason: "Requested driver is offline");
         }
 
         if (driver.IsBusy)
         {
-            logger.LogWarning("DriverCode {Code} driver {DriverId} is busy", context.DriverCode, driver.Id);
+            logger.LogWarning("DriverCode {Code}: driver {DriverId} is busy, falling back to Auto",
+                context.DriverCode, driver.Id);
             return new MatchResult(false, FailureReason: "Requested driver is currently on another trip");
         }
 
-        // Directly dispatch AcceptRide — this creates the Trip with full idempotency protection
+        // Proximity check: driver must be within 2km of pickup
+        var nearbyDrivers = await locationService.GetNearbyAvailableDriversAsync(
+            context.PickupLat, context.PickupLng, ProximityRadiusKm, context.VehicleType, ct);
+
+        if (!nearbyDrivers.Contains(driver.Id))
+        {
+            logger.LogWarning(
+                "DriverCode {Code}: driver {DriverId} not within {Radius}km of pickup, falling back to Auto",
+                context.DriverCode, driver.Id, ProximityRadiusKm);
+            return new MatchResult(false, FailureReason: "Requested driver is too far from pickup location");
+        }
+
+        // Directly dispatch AcceptRide — creates the Trip with full idempotency protection
         try
         {
             var trip = await mediator.Send(

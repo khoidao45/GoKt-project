@@ -2,7 +2,7 @@
   "openapi": "3.0.1",
   "info": {
     "title": "Gokt API",
-    "description": "Authentication & User Management Service for Gokt ride-hailing platform",
+    "description": "Ride-Hailing Backend Service",
     "version": "v1"
   },
   "paths": {
@@ -1619,7 +1619,8 @@
           "Pending",
           "Accepted",
           "Cancelled",
-          "Expired"
+          "Expired",
+          "Searching"
         ],
         "type": "string"
       },

@@ -14,6 +14,7 @@ public class RedisLocationService(
     private static string ConnectionsKey(Guid driverId) => $"gokt:driver:connections:{driverId}";
     private static string LockKey(Guid rideRequestId) => $"gokt:ride:lock:{rideRequestId}";
     private static string CandidatesKey(Guid rideRequestId) => $"gokt:ride:candidates:{rideRequestId}";
+    private static string CooldownKey(Guid driverId) => $"gokt:driver:cooldown:{driverId}";
 
     private static readonly TimeSpan StatusTtl = TimeSpan.FromHours(2);
     private static readonly TimeSpan ConnectionTtl = TimeSpan.FromHours(2);
@@ -189,6 +190,21 @@ public class RedisLocationService(
     {
         var db = redis.GetDatabase();
         await db.SetRemoveAsync(CandidatesKey(rideRequestId), driverId.ToString());
+    }
+
+    // ── Driver cooldown (post-decline) ────────────────────────────────────────
+
+    public async Task SetDriverCooldownAsync(Guid driverId, TimeSpan duration, CancellationToken ct = default)
+    {
+        var db = redis.GetDatabase();
+        await db.StringSetAsync(CooldownKey(driverId), "1", duration);
+        logger.LogInformation("Driver {DriverId} placed in cooldown for {Seconds}s", driverId, duration.TotalSeconds);
+    }
+
+    public async Task<bool> IsDriverInCooldownAsync(Guid driverId, CancellationToken ct = default)
+    {
+        var db = redis.GetDatabase();
+        return await db.KeyExistsAsync(CooldownKey(driverId));
     }
 
     // ── Internal DTO ──────────────────────────────────────────────────────────

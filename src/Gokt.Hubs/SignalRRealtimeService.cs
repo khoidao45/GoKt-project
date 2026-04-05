@@ -1,8 +1,7 @@
 using Gokt.Application.Interfaces;
-using Gokt.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Gokt.Services;
+namespace Gokt.Hubs;
 
 public class SignalRRealtimeService(IHubContext<RideHub> hubContext) : IRealtimeService
 {

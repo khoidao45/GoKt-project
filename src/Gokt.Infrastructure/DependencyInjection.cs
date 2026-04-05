@@ -1,5 +1,6 @@
 using Gokt.Application.Interfaces;
 using Gokt.Infrastructure.BackgroundServices;
+using Gokt.Infrastructure.Messaging;
 using Gokt.Infrastructure.Persistence;
 using Gokt.Infrastructure.Repositories;
 using Gokt.Infrastructure.Services;
@@ -26,7 +27,7 @@ public static class DependencyInjection
         if (!string.IsNullOrEmpty(redisConnection))
         {
             services.AddStackExchangeRedisCache(opts => opts.Configuration = redisConnection);
-            // Register IConnectionMultiplexer for direct GEO / SET NX operations
+            // Register IConnectionMultiplexer for direct GEO / SET NX / rate-limit operations
             services.AddSingleton<IConnectionMultiplexer>(
                 ConnectionMultiplexer.Connect(redisConnection));
         }
@@ -46,6 +47,7 @@ public static class DependencyInjection
         services.AddScoped<ITripRepository, TripRepository>();
         services.AddScoped<IPricingRepository, PricingRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<IOutboxRepository, OutboxRepository>();
 
         // Services
         services.AddScoped<ITokenService, TokenService>();
@@ -56,10 +58,16 @@ public static class DependencyInjection
         services.AddScoped<IPricingService, PricingService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<ILocationService, RedisLocationService>();
+        services.AddSingleton<IRateLimiter, RedisRateLimiter>();
         services.AddScoped<IMatchingService, MatchingService>();
         services.AddScoped<AutoMatchingStrategy>();
         services.AddScoped<DriverCodeMatchingStrategy>();
         services.AddHostedService<RideExpiryWorker>();
+        services.AddHostedService<OutboxProcessor>();
+
+        // Kafka event publisher
+        services.Configure<KafkaOptions>(configuration.GetSection("Kafka"));
+        services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
 
         return services;
     }

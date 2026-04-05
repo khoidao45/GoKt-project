@@ -30,4 +30,8 @@ public interface ILocationService
         TimeSpan expiry, CancellationToken ct = default);
     Task<IReadOnlyList<Guid>> GetRideCandidatesAsync(Guid rideRequestId, CancellationToken ct = default);
     Task RemoveDriverFromCandidatesAsync(Guid rideRequestId, Guid driverId, CancellationToken ct = default);
+
+    // Driver cooldown after decline
+    Task SetDriverCooldownAsync(Guid driverId, TimeSpan duration, CancellationToken ct = default);
+    Task<bool> IsDriverInCooldownAsync(Guid driverId, CancellationToken ct = default);
 }

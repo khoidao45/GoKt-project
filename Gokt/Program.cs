@@ -5,14 +5,31 @@ using Gokt.Application.Interfaces;
 using Gokt.Hubs;
 using Gokt.Infrastructure;
 using Gokt.Middleware;
-using Gokt.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Events;
+using StackExchange.Redis;
 
 DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 
+// ── Serilog ───────────────────────────────────────────────────────────────────
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .WriteTo.File("logs/gokt-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 7)
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // ── Controllers ──────────────────────────────────────────────────────────────
 builder.Services
@@ -23,8 +40,14 @@ builder.Services
         opts.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
-// ── SignalR ───────────────────────────────────────────────────────────────────
-builder.Services.AddSignalR();
+// ── SignalR + Redis Backplane ─────────────────────────────────────────────────
+var redisConn = builder.Configuration.GetConnectionString("Redis");
+var signalRBuilder = builder.Services.AddSignalR();
+if (!string.IsNullOrEmpty(redisConn))
+{
+    signalRBuilder.AddStackExchangeRedis(redisConn, opts =>
+        opts.Configuration.ChannelPrefix = RedisChannel.Literal("gokt"));
+}
 
 // ── Swagger / OpenAPI ─────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
@@ -112,8 +135,7 @@ builder.Services.AddCors(opts =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// ── IRealtimeService — registered here because SignalRRealtimeService
-//    depends on IHubContext<RideHub> which lives in the API project ────────────
+// ── IRealtimeService — SignalRRealtimeService is in Gokt.Hubs (shared library)
 builder.Services.AddScoped<IRealtimeService, SignalRRealtimeService>();
 
 // ── Build ─────────────────────────────────────────────────────────────────────

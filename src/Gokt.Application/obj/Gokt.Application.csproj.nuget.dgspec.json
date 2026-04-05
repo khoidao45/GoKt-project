@@ -88,10 +88,6 @@
               "version": "[8.0.21, 8.0.21]"
             },
             {
-              "name": "Microsoft.Net.Sdk.Compilers.Toolset",
-              "version": "[9.0.306, 9.0.306]"
-            },
-            {
               "name": "Microsoft.NETCore.App.Ref",
               "version": "[8.0.21, 8.0.21]"
             },
@@ -169,10 +165,6 @@
             {
               "name": "Microsoft.AspNetCore.App.Ref",
               "version": "[8.0.21, 8.0.21]"
-            },
-            {
-              "name": "Microsoft.Net.Sdk.Compilers.Toolset",
-              "version": "[9.0.306, 9.0.306]"
             },
             {
               "name": "Microsoft.NETCore.App.Ref",

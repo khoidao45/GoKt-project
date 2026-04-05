@@ -12,6 +12,8 @@ public sealed class DeclineRideCommandHandler(
     IRideRequestRepository rideRequestRepository,
     ILocationService locationService) : IRequestHandler<DeclineRideCommand>
 {
+    private static readonly TimeSpan CooldownDuration = TimeSpan.FromSeconds(30);
+
     public async Task Handle(DeclineRideCommand cmd, CancellationToken ct)
     {
         var driver = await driverRepository.GetByUserIdAsync(cmd.UserId, ct)
@@ -29,5 +31,8 @@ public sealed class DeclineRideCommandHandler(
         // Remove this driver from the Redis candidate set so they won't receive
         // RideTaken notifications or be re-notified in subsequent waves
         await locationService.RemoveDriverFromCandidatesAsync(rideRequest.Id, driver.Id, ct);
+
+        // Apply cooldown so this driver is skipped for the next 30 seconds
+        await locationService.SetDriverCooldownAsync(driver.Id, CooldownDuration, ct);
     }
 }

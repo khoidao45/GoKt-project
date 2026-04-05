@@ -4,7 +4,8 @@
       "Bash(dotnet build:*)",
       "Bash(dotnet tool:*)",
       "Bash(dotnet ef:*)",
-      "Bash(dotnet add:*)"
+      "Bash(dotnet add:*)",
+      "Bash(dotnet new:*)"
     ]
   }
 }

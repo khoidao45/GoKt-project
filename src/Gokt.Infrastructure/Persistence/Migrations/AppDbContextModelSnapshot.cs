@@ -224,6 +224,56 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                     b.ToTable("OAuthAccounts", (string)null);
                 });
 
+            modelBuilder.Entity("Gokt.Domain.Entities.OutboxEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("MessageKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Payload")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RetryCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("IX_OutboxEvents_Status_CreatedAt");
+
+                    b.ToTable("OutboxEvents", (string)null);
+                });
+
             modelBuilder.Entity("Gokt.Domain.Entities.PricingRule", b =>
                 {
                     b.Property<Guid>("Id")
@@ -421,7 +471,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5516),
+                            CreatedAt = new DateTime(2026, 4, 5, 3, 29, 38, 824, DateTimeKind.Utc).AddTicks(5474),
                             Description = "Can book trips",
                             IsSystem = true,
                             Name = "RIDER"
@@ -429,7 +479,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5528),
+                            CreatedAt = new DateTime(2026, 4, 5, 3, 29, 38, 824, DateTimeKind.Utc).AddTicks(5478),
                             Description = "Can accept and complete trips",
                             IsSystem = true,
                             Name = "DRIVER"
@@ -437,7 +487,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5530),
+                            CreatedAt = new DateTime(2026, 4, 5, 3, 29, 38, 824, DateTimeKind.Utc).AddTicks(5480),
                             Description = "Platform administrator",
                             IsSystem = true,
                             Name = "ADMIN"
@@ -445,7 +495,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2026, 4, 4, 16, 25, 6, 919, DateTimeKind.Utc).AddTicks(5532),
+                            CreatedAt = new DateTime(2026, 4, 5, 3, 29, 38, 824, DateTimeKind.Utc).AddTicks(5486),
                             Description = "Customer support agent",
                             IsSystem = true,
                             Name = "SUPPORT"
