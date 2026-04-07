@@ -40,12 +40,15 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_LOG_RETENTION_HOURS: 24
     healthcheck:
-      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:9092"]
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:29092"]
       interval: 10s
       timeout: 10s
       retries: 10
@@ -67,7 +70,7 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__DefaultConnection: "Host=postgres;Database=gokt;Username=gokt;Password=gokt"
       ConnectionStrings__Redis: "redis:6379"
-      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__BootstrapServers: "kafka:29092"
       Jwt__Secret: "${JWT_SECRET:-changeme-in-production-32chars!}"
       Jwt__Issuer: "${JWT_ISSUER:-gokt-api}"
       Jwt__Audience: "${JWT_AUDIENCE:-gokt-clients}"
@@ -84,7 +87,7 @@ services:
     environment:
       ConnectionStrings__DefaultConnection: "Host=postgres;Database=gokt;Username=gokt;Password=gokt"
       ConnectionStrings__Redis: "redis:6379"
-      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__BootstrapServers: "kafka:29092"
       Kafka__GroupId: "gokt-matching-worker"
     deploy:
       replicas: 2

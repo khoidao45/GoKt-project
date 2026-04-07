@@ -22,18 +22,26 @@ public static class DependencyInjection
                 configuration.GetConnectionString("DefaultConnection"),
                 npgsql => npgsql.EnableRetryOnFailure(3)));
 
-        // Cache — falls back to in-memory if Redis is not configured
-        var redisConnection = configuration.GetConnectionString("Redis");
-        if (!string.IsNullOrEmpty(redisConnection))
+        // Cache — falls back to in-memory when Redis is not configured.
+        var redisConnection = ResolveRedisConnectionString(configuration);
+        if (!string.IsNullOrWhiteSpace(redisConnection))
         {
             services.AddStackExchangeRedisCache(opts => opts.Configuration = redisConnection);
-            // Register IConnectionMultiplexer for direct GEO / SET NX / rate-limit operations
-            services.AddSingleton<IConnectionMultiplexer>(
-                ConnectionMultiplexer.Connect(redisConnection));
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                var options = ConfigurationOptions.Parse(redisConnection);
+                options.AbortOnConnectFail = false;
+                return ConnectionMultiplexer.Connect(options);
+            });
+
+            services.AddSingleton<ILocationService, RedisLocationService>();
+            services.AddSingleton<IRateLimiter, RedisRateLimiter>();
         }
         else
         {
-            services.AddDistributedMemoryCache(); // Development fallback
+            services.AddDistributedMemoryCache();
+            services.AddSingleton<ILocationService, InMemoryLocationService>();
+            services.AddSingleton<IRateLimiter, InMemoryRateLimiter>();
         }
 
         // Repositories
@@ -57,8 +65,6 @@ public static class DependencyInjection
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IPricingService, PricingService>();
         services.AddScoped<INotificationService, NotificationService>();
-        services.AddSingleton<ILocationService, RedisLocationService>();
-        services.AddSingleton<IRateLimiter, RedisRateLimiter>();
         services.AddScoped<IMatchingService, MatchingService>();
         services.AddScoped<AutoMatchingStrategy>();
         services.AddScoped<DriverCodeMatchingStrategy>();
@@ -70,6 +76,32 @@ public static class DependencyInjection
         services.AddSingleton<IEventPublisher, KafkaEventPublisher>();
 
         return services;
+    }
+
+    private static string? ResolveRedisConnectionString(IConfiguration configuration)
+    {
+        var direct = configuration.GetConnectionString("Redis");
+        if (!string.IsNullOrWhiteSpace(direct)) return direct;
+
+        var host = configuration["Redis:Host"];
+        if (string.IsNullOrWhiteSpace(host)) return null;
+
+        var port = configuration.GetValue("Redis:Port", 6379);
+        var password = configuration["Redis:Password"];
+        var username = configuration["Redis:Username"];
+        var ssl = configuration.GetValue("Redis:Ssl", false);
+
+        var options = new ConfigurationOptions
+        {
+            AbortOnConnectFail = false,
+            Ssl = ssl
+        };
+        options.EndPoints.Add(host, port);
+
+        if (!string.IsNullOrWhiteSpace(password)) options.Password = password;
+        if (!string.IsNullOrWhiteSpace(username)) options.User = username;
+
+        return options.ToString();
     }
 
     public static async Task ApplyMigrationsAsync(this IServiceProvider services)

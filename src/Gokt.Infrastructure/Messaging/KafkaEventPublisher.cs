@@ -14,12 +14,14 @@ public class KafkaEventPublisher : IEventPublisher, IDisposable
     public KafkaEventPublisher(IOptions<KafkaOptions> options, ILogger<KafkaEventPublisher> logger)
     {
         _logger = logger;
+        var kafkaOptions = options.Value;
         var config = new ProducerConfig
         {
-            BootstrapServers = options.Value.BootstrapServers,
-            Acks = Acks.Leader,             // Leader ACK — balanced durability / latency
-            MessageTimeoutMs = 5000,
-            EnableIdempotence = true,       // Kafka producer-side idempotency
+            BootstrapServers = kafkaOptions.BootstrapServers,
+            // Kafka requires acks=all when idempotence is enabled.
+            Acks = kafkaOptions.EnableIdempotence ? Acks.All : Acks.Leader,
+            MessageTimeoutMs = kafkaOptions.MessageTimeoutMs,
+            EnableIdempotence = kafkaOptions.EnableIdempotence,
             MaxInFlight = 5
         };
         _producer = new ProducerBuilder<string, string>(config).Build();

@@ -1,5 +1,6 @@
 using Gokt.Application.Interfaces;
 using Gokt.Domain.Entities;
+using Gokt.Domain.Enums;
 using Gokt.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -37,5 +38,42 @@ public class OutboxRepository(AppDbContext db) : IOutboxRepository
             .ContinueWith(t => (IReadOnlyList<OutboxEvent>)t.Result, ct,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
+    }
+
+    public async Task<IReadOnlyList<OutboxEvent>> GetFailedAsync(int skip, int take, CancellationToken ct = default)
+    {
+        var events = await db.OutboxEvents
+            .Where(e => e.Status == OutboxStatus.Failed)
+            .OrderByDescending(e => e.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .AsTracking()
+            .ToListAsync(ct);
+
+        return events;
+    }
+
+    public Task<int> CountFailedAsync(CancellationToken ct = default)
+    {
+        return db.OutboxEvents.CountAsync(e => e.Status == OutboxStatus.Failed, ct);
+    }
+
+    public Task<OutboxEvent?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        return db.OutboxEvents.FirstOrDefaultAsync(e => e.Id == id, ct);
+    }
+
+    public async Task<int> ReplayAllFailedAsync(CancellationToken ct = default)
+    {
+        var failedEvents = await db.OutboxEvents
+            .Where(e => e.Status == OutboxStatus.Failed)
+            .ToListAsync(ct);
+
+        foreach (var failedEvent in failedEvents)
+        {
+            failedEvent.ResetForReplay();
+        }
+
+        return failedEvents.Count;
     }
 }
