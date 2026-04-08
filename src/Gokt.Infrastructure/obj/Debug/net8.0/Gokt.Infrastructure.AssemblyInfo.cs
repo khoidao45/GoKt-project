@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Gokt.Infrastructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+972ddc7a229ebda58749fa9df7dc02ed7cfe464a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e637687771e91cc36c4d0f3fb2603011874f89c1")]
 [assembly: System.Reflection.AssemblyProductAttribute("Gokt.Infrastructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Gokt.Infrastructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -61,61 +61,66 @@ public class OutboxProcessor(
         var outboxRepo     = scope.ServiceProvider.GetRequiredService<IOutboxRepository>();
         var publisher      = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
 
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var strategy = db.Database.CreateExecutionStrategy();
 
-        var events = await outboxRepo.GetPendingBatchAsync(BatchSize, ct);
-        if (events.Count == 0)
+        await strategy.ExecuteAsync(async () =>
         {
-            await tx.RollbackAsync(ct);
-            return;
-        }
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
 
-        logger.LogInformation("OutboxProcessor: processing {Count} event(s)", events.Count);
-
-        foreach (var outboxEvent in events)
-        {
-            try
+            var events = await outboxRepo.GetPendingBatchAsync(BatchSize, ct);
+            if (events.Count == 0)
             {
-                await publisher.PublishRawAsync(
-                    outboxEvent.Type,
-                    outboxEvent.MessageKey,
-                    outboxEvent.Payload,
-                    ct);
-
-                outboxEvent.MarkProcessed();
-
-                logger.LogInformation(
-                    "OutboxProcessor: published {Id} → topic={Type} key={Key}",
-                    outboxEvent.Id, outboxEvent.Type, outboxEvent.MessageKey);
+                await tx.RollbackAsync(ct);
+                return;
             }
-            catch (Exception ex)
+
+            logger.LogInformation("OutboxProcessor: processing {Count} event(s)", events.Count);
+
+            foreach (var outboxEvent in events)
             {
-                outboxEvent.IncrementRetry(ex.Message);
-
-                if (outboxEvent.RetryCount >= MaxRetries)
+                try
                 {
-                    // ── DEAD LETTER ──────────────────────────────────────────
-                    // Best-effort: publish to DLQ so the event is observable
-                    // and can be replayed from outside the system (Kafka tooling,
-                    // admin endpoint, etc.).
-                    await TrySendToDlqAsync(publisher, outboxEvent, ex.Message, ct);
-                    outboxEvent.MarkFailed(ex.Message);
+                    await publisher.PublishRawAsync(
+                        outboxEvent.Type,
+                        outboxEvent.MessageKey,
+                        outboxEvent.Payload,
+                        ct);
 
-                    logger.LogError(ex,
-                        "OutboxProcessor: event {Id} (type={Type} key={Key}) exhausted {Max} retries — DLQ'd and marked Failed",
-                        outboxEvent.Id, outboxEvent.Type, outboxEvent.MessageKey, MaxRetries);
+                    outboxEvent.MarkProcessed();
+
+                    logger.LogInformation(
+                        "OutboxProcessor: published {Id} → topic={Type} key={Key}",
+                        outboxEvent.Id, outboxEvent.Type, outboxEvent.MessageKey);
                 }
-                else
+                catch (Exception ex)
                 {
-                    logger.LogWarning(ex,
-                        "OutboxProcessor: event {Id} publish failed — retry {Retry}/{Max}",
-                        outboxEvent.Id, outboxEvent.RetryCount, MaxRetries);
+                    outboxEvent.IncrementRetry(ex.Message);
+
+                    if (outboxEvent.RetryCount >= MaxRetries)
+                    {
+                        // ── DEAD LETTER ──────────────────────────────────────────
+                        // Best-effort: publish to DLQ so the event is observable
+                        // and can be replayed from outside the system (Kafka tooling,
+                        // admin endpoint, etc.).
+                        await TrySendToDlqAsync(publisher, outboxEvent, ex.Message, ct);
+                        outboxEvent.MarkFailed(ex.Message);
+
+                        logger.LogError(ex,
+                            "OutboxProcessor: event {Id} (type={Type} key={Key}) exhausted {Max} retries — DLQ'd and marked Failed",
+                            outboxEvent.Id, outboxEvent.Type, outboxEvent.MessageKey, MaxRetries);
+                    }
+                    else
+                    {
+                        logger.LogWarning(ex,
+                            "OutboxProcessor: event {Id} publish failed — retry {Retry}/{Max}",
+                            outboxEvent.Id, outboxEvent.RetryCount, MaxRetries);
+                    }
                 }
             }
-        }
 
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        });
     }
 
     // ── DLQ helper ────────────────────────────────────────────────────────────

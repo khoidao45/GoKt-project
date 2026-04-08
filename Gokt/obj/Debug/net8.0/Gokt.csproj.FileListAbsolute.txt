@@ -184,3 +184,4 @@ C:\Users\MINH KHOI\source\repos\Gokt\Gokt\bin\Debug\net8.0\runtimes\win-x86\nati
 C:\Users\MINH KHOI\source\repos\Gokt\Gokt\bin\Debug\net8.0\runtimes\win-x86\native\zstd.dll
 C:\Users\MINH KHOI\source\repos\Gokt\Gokt\bin\Debug\net8.0\Gokt.Hubs.dll
 C:\Users\MINH KHOI\source\repos\Gokt\Gokt\bin\Debug\net8.0\Gokt.Hubs.pdb
+C:\Users\MINH KHOI\source\repos\Gokt\Gokt\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
