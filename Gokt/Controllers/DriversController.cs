@@ -30,12 +30,13 @@ public class DriversController(IMediator mediator) : ControllerBase
     }
 
     // POST /api/v1/drivers/vehicles
+    // Supports categories: ElectricBike, Seat4, Seat7, Seat9.
     [HttpPost("vehicles")]
     [ProducesResponseType(typeof(VehicleDto), 201)]
     public async Task<IActionResult> AddVehicle([FromBody] AddVehicleRequest req, CancellationToken ct)
     {
         var result = await mediator.Send(new AddVehicleCommand(
-            CurrentUserId, req.Make, req.Model, req.Year, req.Color, req.PlateNumber, req.VehicleType), ct);
+            CurrentUserId, req.Make, req.Model, req.Year, req.Color, req.PlateNumber, req.SeatCount, req.ImageUrl, req.VehicleType), ct);
         return StatusCode(201, result);
     }
 
@@ -57,7 +58,7 @@ public class DriversController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
-    // GET /api/v1/drivers/nearby?lat=...&lng=...&radius=5&vehicleType=Economy
+    // GET /api/v1/drivers/nearby?lat=...&lng=...&radius=5&vehicleType=Seat4
     [HttpGet("nearby")]
     [ProducesResponseType(typeof(IEnumerable<DriverDto>), 200)]
     public async Task<IActionResult> GetNearby(
@@ -86,6 +87,6 @@ public class DriversController(IMediator mediator) : ControllerBase
 }
 
 public record RegisterDriverRequest(string LicenseNumber, DateTime LicenseExpiry);
-public record AddVehicleRequest(string Make, string Model, int Year, string Color, string PlateNumber, VehicleType VehicleType);
+public record AddVehicleRequest(string Make, string Model, int Year, string Color, string PlateNumber, int SeatCount, string? ImageUrl, VehicleType VehicleType);
 public record ToggleOnlineRequest(bool IsOnline);
 public record UpdateLocationRequest(double Latitude, double Longitude);

@@ -10,18 +10,22 @@ public record VehicleDto(
     int Year,
     string Color,
     string PlateNumber,
+    int SeatCount,
+    string? ImageUrl,
     VehicleType VehicleType,
-    bool IsVerified
+    bool IsVerified,
+    DateTime? VerifiedAt
 )
 {
     public static VehicleDto From(Vehicle v) =>
-        new(v.Id, v.Make, v.Model, v.Year, v.Color, v.PlateNumber, v.VehicleType, v.IsVerified);
+        new(v.Id, v.Make, v.Model, v.Year, v.Color, v.PlateNumber, v.SeatCount, v.ImageUrl, v.VehicleType, v.IsVerified, v.VerifiedAt);
 }
 
 public record DriverDto(
     Guid Id,
     Guid UserId,
     string FullName,
+    string? AvatarUrl,
     DriverStatus Status,
     decimal Rating,
     int TotalRides,
@@ -31,8 +35,8 @@ public record DriverDto(
     List<VehicleDto> Vehicles
 )
 {
-    public static DriverDto From(Driver d, string fullName) =>
-        new(d.Id, d.UserId, fullName, d.Status, d.Rating, d.TotalRides,
+    public static DriverDto From(Driver d, string fullName, string? avatarUrl = null) =>
+        new(d.Id, d.UserId, fullName, avatarUrl, d.Status, d.Rating, d.TotalRides,
             d.IsOnline, d.CurrentLatitude, d.CurrentLongitude,
             d.Vehicles.Select(VehicleDto.From).ToList());
 }
@@ -79,7 +83,15 @@ public record TripDto(
     DateTime? CancelledAt,
     string? CancellationReason,
     int? CustomerRating,
-    int? DriverRating
+    int? DriverRating,
+    string? DriverName,
+    string? DriverAvatarUrl,
+    string? VehicleMake,
+    string? VehicleModel,
+    string? VehicleColor,
+    string? VehiclePlateNumber,
+    int? VehicleSeatCount,
+    string? VehicleImageUrl
 )
 {
     public static TripDto From(Trip t) =>
@@ -89,7 +101,15 @@ public record TripDto(
             t.RideRequest?.DropoffAddress ?? string.Empty,
             t.FinalFare, t.ActualDistanceKm, t.ActualDurationMinutes,
             t.AcceptedAt, t.StartedAt, t.CompletedAt, t.CancelledAt,
-            t.CancellationReason, t.CustomerRating, t.DriverRating);
+            t.CancellationReason, t.CustomerRating, t.DriverRating,
+            t.Driver?.User?.Profile?.FullName,
+            t.Driver?.User?.Profile?.AvatarUrl,
+            t.Vehicle?.Make,
+            t.Vehicle?.Model,
+            t.Vehicle?.Color,
+            t.Vehicle?.PlateNumber,
+            t.Vehicle?.SeatCount,
+            t.Vehicle?.ImageUrl);
 }
 
 public record PriceEstimateDto(

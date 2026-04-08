@@ -47,6 +47,6 @@ public sealed class RegisterDriverCommandHandler(
             ? $"{user.Profile.FirstName} {user.Profile.LastName}".Trim()
             : user.Email;
 
-        return DriverDto.From(driver, fullName);
+        return DriverDto.From(driver, fullName, user.Profile?.AvatarUrl);
     }
 }

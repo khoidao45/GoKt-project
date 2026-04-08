@@ -6,9 +6,10 @@ import type { UserDto } from '../types'
 
 interface Props {
   onLogin: (user: UserDto, token: string) => void
+  googleEnabled?: boolean
 }
 
-export default function LoginPage({ onLogin }: Props) {
+export default function LoginPage({ onLogin, googleEnabled = false }: Props) {
   const nav = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -66,20 +67,22 @@ export default function LoginPage({ onLogin }: Props) {
           </div>
         )}
 
-        {/* Google OAuth */}
-        <div style={{ marginBottom: 16 }}>
-          <GoogleLogin
-            onSuccess={handleGoogle}
-            onError={() => setError('Đăng nhập Google thất bại')}
-            width="100%"
-            text="signin_with"
-            shape="rectangular"
-            theme="outline"
-            size="large"
-          />
-        </div>
-
-        <div className="divider">hoặc đăng nhập bằng email</div>
+        {googleEnabled && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <GoogleLogin
+                onSuccess={handleGoogle}
+                onError={() => setError('Đăng nhập Google thất bại')}
+                width="100%"
+                text="signin_with"
+                shape="rectangular"
+                theme="outline"
+                size="large"
+              />
+            </div>
+            <div className="divider">hoặc đăng nhập bằng email</div>
+          </>
+        )}
 
         <form onSubmit={handleLogin}>
           <div className="field">

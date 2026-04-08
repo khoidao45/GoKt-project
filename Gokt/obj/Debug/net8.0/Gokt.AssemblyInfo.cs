@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Gokt")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ac2ac0020d436946d2bbe7df51fb9c110252f429")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+11170748e24d1523bdf5bec2b47ebef760e2872f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Gokt")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Gokt")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

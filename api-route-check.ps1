@@ -49,15 +49,15 @@ $tests += CallCurl 'Users.RevokeSession' 'DELETE' '/api/v1/users/me/sessions/111
 
 # Drivers
 $tests += CallCurl 'Drivers.Register' 'POST' '/api/v1/drivers/register' @{licenseNumber='LIC-1';licenseExpiry='2030-12-31T00:00:00Z'}
-$tests += CallCurl 'Drivers.AddVehicle' 'POST' '/api/v1/drivers/vehicles' @{make='T';model='M';year=2022;color='Black';plateNumber='51A-11111';vehicleType='Economy'}
+$tests += CallCurl 'Drivers.AddVehicle' 'POST' '/api/v1/drivers/vehicles' @{make='T';model='M';year=2022;color='Black';plateNumber='51A-11111';vehicleType='Seat4'}
 $tests += CallCurl 'Drivers.Online' 'PUT' '/api/v1/drivers/online' @{isOnline=$true}
 $tests += CallCurl 'Drivers.Location' 'PUT' '/api/v1/drivers/location' @{latitude=10.7;longitude=106.7}
-$tests += CallCurl 'Drivers.Nearby' 'GET' '/api/v1/drivers/nearby?lat=10.7&lng=106.7&radius=5&vehicleType=Economy' $null
+$tests += CallCurl 'Drivers.Nearby' 'GET' '/api/v1/drivers/nearby?lat=10.7&lng=106.7&radius=5&vehicleType=Seat4' $null
 $tests += CallCurl 'Drivers.Trips' 'GET' '/api/v1/drivers/trips?page=1&pageSize=20' $null
 
 # Rides
-$tests += CallCurl 'Rides.Estimate' 'GET' '/api/v1/rides/estimate?pickupLat=10.7&pickupLng=106.7&dropoffLat=10.8&dropoffLng=106.8&vehicleType=Economy' $null
-$tests += CallCurl 'Rides.Request' 'POST' '/api/v1/rides/request' @{pickupLatitude=10.7;pickupLongitude=106.7;pickupAddress='A';dropoffLatitude=10.8;dropoffLongitude=106.8;dropoffAddress='B';vehicleType='Economy'}
+$tests += CallCurl 'Rides.Estimate' 'GET' '/api/v1/rides/estimate?pickupLat=10.7&pickupLng=106.7&dropoffLat=10.8&dropoffLng=106.8&vehicleType=Seat4' $null
+$tests += CallCurl 'Rides.Request' 'POST' '/api/v1/rides/request' @{pickupLatitude=10.7;pickupLongitude=106.7;pickupAddress='A';dropoffLatitude=10.8;dropoffLongitude=106.8;dropoffAddress='B';vehicleType='Seat4';isPremium=$false}
 $tests += CallCurl 'Rides.Accept' 'POST' '/api/v1/rides/11111111-1111-1111-1111-111111111111/accept' $null
 $tests += CallCurl 'Rides.Cancel' 'POST' '/api/v1/rides/11111111-1111-1111-1111-111111111111/cancel' @{reason='x'}
 $tests += CallCurl 'Rides.Active' 'GET' '/api/v1/rides/active' $null

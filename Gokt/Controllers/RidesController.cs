@@ -18,13 +18,13 @@ namespace Gokt.Controllers;
 [Authorize]
 public class RidesController(IMediator mediator) : ControllerBase
 {
-    // GET /api/v1/rides/estimate?pickupLat=...&pickupLng=...&dropoffLat=...&dropoffLng=...&vehicleType=Economy
+    // GET /api/v1/rides/estimate?pickupLat=...&pickupLng=...&dropoffLat=...&dropoffLng=...&vehicleType=Seat4
     [HttpGet("estimate")]
     [ProducesResponseType(typeof(PriceEstimateDto), 200)]
     public async Task<IActionResult> GetEstimate(
         [FromQuery] double pickupLat, [FromQuery] double pickupLng,
         [FromQuery] double dropoffLat, [FromQuery] double dropoffLng,
-        [FromQuery] VehicleType vehicleType = VehicleType.Economy,
+        [FromQuery] VehicleType vehicleType = VehicleType.Seat4,
         CancellationToken ct = default)
     {
         var result = await mediator.Send(

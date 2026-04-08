@@ -66,7 +66,7 @@
             },
             "Google.Apis.Auth": {
               "target": "Package",
-              "version": "[1.68.0, )"
+              "version": "[1.69.0, )"
             },
             "Microsoft.AspNetCore.Authentication.JwtBearer": {
               "target": "Package",
@@ -206,9 +206,17 @@
               "target": "Package",
               "version": "[11.11.0, )"
             },
+            "Google.Apis.Auth": {
+              "target": "Package",
+              "version": "[1.69.0, )"
+            },
             "MediatR": {
               "target": "Package",
               "version": "[12.4.1, )"
+            },
+            "Microsoft.Extensions.Configuration.Abstractions": {
+              "target": "Package",
+              "version": "[8.0.0, )"
             },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",

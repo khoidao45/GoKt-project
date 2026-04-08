@@ -81,8 +81,8 @@ $results += CallApi 'Users.UpdateProfile' 'PUT' '/api/v1/users/me/profile' $cust
 $results += CallApi 'Users.Sessions' 'GET' '/api/v1/users/me/sessions' $customerToken $null
 $results += CallApi 'Users.RevokeSession.Fake' 'DELETE' '/api/v1/users/me/sessions/11111111-1111-1111-1111-111111111111' $customerToken $null
 
-$results += CallApi 'Rides.Estimate' 'GET' '/api/v1/rides/estimate?pickupLat=10.7769&pickupLng=106.7009&dropoffLat=10.7626&dropoffLng=106.6602&vehicleType=Economy' $customerToken $null
-$createRide = CallApi 'Rides.CreateRequest' 'POST' '/api/v1/rides/request' $customerToken @{pickupLatitude=10.7769;pickupLongitude=106.7009;pickupAddress='Ben Thanh';dropoffLatitude=10.7626;dropoffLongitude=106.6602;dropoffAddress='District 1';vehicleType='Economy'}
+$results += CallApi 'Rides.Estimate' 'GET' '/api/v1/rides/estimate?pickupLat=10.7769&pickupLng=106.7009&dropoffLat=10.7626&dropoffLng=106.6602&vehicleType=Seat4' $customerToken $null
+$createRide = CallApi 'Rides.CreateRequest' 'POST' '/api/v1/rides/request' $customerToken @{pickupLatitude=10.7769;pickupLongitude=106.7009;pickupAddress='Ben Thanh';dropoffLatitude=10.7626;dropoffLongitude=106.6602;dropoffAddress='District 1';vehicleType='Seat4';isPremium=$false}
 $results += $createRide
 $rideId=$null
 if($createRide.Ok){
@@ -94,12 +94,12 @@ if($rideId){
 }
 
 $results += CallApi 'Drivers.Register' 'POST' '/api/v1/drivers/register' $driverToken @{licenseNumber='LIC-123456';licenseExpiry='2030-12-31T00:00:00Z'}
-$results += CallApi 'Drivers.AddVehicle' 'POST' '/api/v1/drivers/vehicles' $driverToken @{make='Toyota';model='Vios';year=2022;color='Black';plateNumber=('51A-'+($stamp%100000));vehicleType='Economy'}
+$results += CallApi 'Drivers.AddVehicle' 'POST' '/api/v1/drivers/vehicles' $driverToken @{make='Toyota';model='Vios';year=2022;color='Black';plateNumber=('51A-'+($stamp%100000));vehicleType='Seat4'}
 $results += CallApi 'Drivers.Online' 'PUT' '/api/v1/drivers/online' $driverToken @{isOnline=$true}
 $results += CallApi 'Drivers.Location' 'PUT' '/api/v1/drivers/location' $driverToken @{latitude=10.7768;longitude=106.7005}
 $results += CallApi 'Drivers.Trips' 'GET' '/api/v1/drivers/trips?page=1&pageSize=20' $driverToken $null
 
-$ride2 = CallApi 'Rides.CreateRequest.2' 'POST' '/api/v1/rides/request' $customerToken @{pickupLatitude=10.7769;pickupLongitude=106.7009;pickupAddress='A';dropoffLatitude=10.7626;dropoffLongitude=106.6602;dropoffAddress='B';vehicleType='Economy'}
+$ride2 = CallApi 'Rides.CreateRequest.2' 'POST' '/api/v1/rides/request' $customerToken @{pickupLatitude=10.7769;pickupLongitude=106.7009;pickupAddress='A';dropoffLatitude=10.7626;dropoffLongitude=106.6602;dropoffAddress='B';vehicleType='Seat4';isPremium=$false}
 $results += $ride2
 $rideId2=$null
 if($ride2.Ok){

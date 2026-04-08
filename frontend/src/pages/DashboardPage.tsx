@@ -82,7 +82,7 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
   const [dropoffPos, setDropoffPos] = useState<LatLng | null>(null)
   const [dropoffAddr, setDropoffAddr] = useState('')
   const [mapMode, setMapMode] = useState<'pickup' | 'dropoff'>('pickup')
-  const [vehicleType, setVehicleType] = useState('Economy')
+  const [vehicleType, setVehicleType] = useState('Seat4')
   const [gpsLoading, setGpsLoading] = useState(false)
 
   // profile form
@@ -205,9 +205,10 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
   const unreadCount = notifs.filter((n) => !n.isRead).length
 
   const vehicles = [
-    { type: 'Economy', icon: '🛵', name: 'Economy', sub: 'Tiết kiệm' },
-    { type: 'Comfort',  icon: '🚗', name: 'Comfort',  sub: 'Thoải mái' },
-    { type: 'Premium',  icon: '🚙', name: 'Premium',  sub: 'Cao cấp' },
+    { type: 'ElectricBike', icon: '🛵', name: 'Xe máy điện', sub: 'Đón 1 khách' },
+    { type: 'Seat4',        icon: '🚗', name: 'Xe 4 chỗ',    sub: 'Phổ biến' },
+    { type: 'Seat7',        icon: '🚐', name: 'Xe 7 chỗ',    sub: 'Gia đình' },
+    { type: 'Seat9',        icon: '🚍', name: 'Xe 9 chỗ',    sub: 'Nhóm đông' },
   ]
 
   // ─── Sidebar ─────────────────────────────────────────────────────────────
@@ -351,6 +352,43 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
                           Huỷ chuyến
                         </button>
                       )}
+                    </div>
+                  )}
+
+                  {activeRide.trip && (
+                    <div className="ride-status-card mb-4" style={{ background: '#eff6ff' }}>
+                      <div className="ride-status-badge">{statusLabel(activeRide.trip.status)}</div>
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 12 }}>
+                        {activeRide.trip.driverAvatarUrl
+                          ? <img src={activeRide.trip.driverAvatarUrl} alt="Driver" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover' }} />
+                          : <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--primary-light)', display: 'grid', placeItems: 'center', fontWeight: 700 }}>👤</div>}
+                        <div>
+                          <div style={{ fontWeight: 700 }}>{activeRide.trip.driverName || 'Tài xế'}</div>
+                          <div style={{ fontSize: 13, opacity: .8 }}>
+                            {activeRide.trip.vehicleMake} {activeRide.trip.vehicleModel} • {activeRide.trip.vehicleSeatCount || '?'} chỗ
+                          </div>
+                          <div style={{ fontSize: 13, opacity: .8 }}>
+                            {activeRide.trip.vehicleColor} • {activeRide.trip.vehiclePlateNumber}
+                          </div>
+                        </div>
+                      </div>
+                      {activeRide.trip.vehicleImageUrl && (
+                        <img
+                          src={activeRide.trip.vehicleImageUrl}
+                          alt="Vehicle"
+                          style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 10, marginBottom: 12 }}
+                        />
+                      )}
+                      <div className="ride-route">
+                        <div className="route-point">
+                          <div className="route-dot pickup" />
+                          {activeRide.trip.pickupAddress}
+                        </div>
+                        <div className="route-point">
+                          <div className="route-dot dropoff" />
+                          {activeRide.trip.dropoffAddress}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

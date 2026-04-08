@@ -12,6 +12,8 @@ public class TripRepository(AppDbContext db) : ITripRepository
         db.Trips
             .Include(t => t.RideRequest)
             .Include(t => t.Driver)
+                .ThenInclude(d => d.User)
+                    .ThenInclude(u => u.Profile)
             .Include(t => t.Vehicle);
 
     public Task<Trip?> GetByIdAsync(Guid id, CancellationToken ct = default) =>

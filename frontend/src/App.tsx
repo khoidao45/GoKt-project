@@ -5,6 +5,7 @@ import { getToken, setToken, users } from './api'
 import type { UserDto } from './types'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
+const GOOGLE_AUTH_ENABLED = GOOGLE_CLIENT_ID.trim().length > 0
 
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
@@ -15,12 +16,12 @@ import DashboardPage from './pages/DashboardPage'
 
 export default function App() {
   const [user, setUser] = useState<UserDto | null>(null)
-  const [booting, setBooting] = useState(true)
+  const [booting, setBooting] = useState(() => Boolean(getToken()))
 
   // Restore session from localStorage on first load
   useEffect(() => {
     const token = getToken()
-    if (!token) { setBooting(false); return }
+    if (!token) return
 
     users.me()
       .then((u) => setUser(u))
@@ -60,18 +61,17 @@ export default function App() {
     )
   }
 
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+  const appRoutes = (
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
         <Route
           path="/login"
-          element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={handleLogin} />}
+          element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={handleLogin} googleEnabled={GOOGLE_AUTH_ENABLED} />}
         />
         <Route
           path="/register"
-          element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage onLogin={handleLogin} />}
+          element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage onLogin={handleLogin} googleEnabled={GOOGLE_AUTH_ENABLED} />}
         />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password"  element={<ResetPasswordPage />} />
@@ -91,6 +91,9 @@ export default function App() {
         <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
-    </GoogleOAuthProvider>
   )
+
+  return GOOGLE_AUTH_ENABLED
+    ? <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{appRoutes}</GoogleOAuthProvider>
+    : appRoutes
 }

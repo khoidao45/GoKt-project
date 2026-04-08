@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<DriverCodeMatchingStrategy>();
         services.AddHostedService<RideExpiryWorker>();
         services.AddHostedService<OutboxProcessor>();
+        services.AddHostedService<DriverDailyPayrollWorker>();
 
         // Kafka event publisher
         services.Configure<KafkaOptions>(configuration.GetSection("Kafka"));

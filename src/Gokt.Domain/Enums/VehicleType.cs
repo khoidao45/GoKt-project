@@ -2,8 +2,8 @@ namespace Gokt.Domain.Enums;
 
 public enum VehicleType
 {
-    Economy = 1,
-    Comfort = 2,
-    Premium = 3,
-    XL = 4
+    ElectricBike = 1,
+    Seat4 = 2,
+    Seat7 = 3,
+    Seat9 = 4
 }

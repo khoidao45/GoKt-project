@@ -24,16 +24,16 @@ public class PricingRuleConfiguration : IEntityTypeConfiguration<PricingRule>
         builder.HasData(
             PricingRule.CreateSeed(
                 new Guid("b1b1b1b1-0000-0000-0000-000000000001"),
-                VehicleType.Economy, 1.50m, 0.80m, 0.15m, 3.00m),
+                VehicleType.ElectricBike, 1.00m, 0.55m, 0.08m, 2.00m),
             PricingRule.CreateSeed(
                 new Guid("b1b1b1b1-0000-0000-0000-000000000002"),
-                VehicleType.Comfort, 2.00m, 1.20m, 0.20m, 5.00m),
+                VehicleType.Seat4, 1.80m, 0.95m, 0.18m, 3.50m),
             PricingRule.CreateSeed(
                 new Guid("b1b1b1b1-0000-0000-0000-000000000003"),
-                VehicleType.Premium, 3.00m, 2.00m, 0.30m, 8.00m),
+                VehicleType.Seat7, 2.40m, 1.25m, 0.22m, 5.50m),
             PricingRule.CreateSeed(
                 new Guid("b1b1b1b1-0000-0000-0000-000000000004"),
-                VehicleType.XL, 2.50m, 1.50m, 0.25m, 6.00m)
+                VehicleType.Seat9, 2.90m, 1.45m, 0.25m, 6.50m)
         );
     }
 }

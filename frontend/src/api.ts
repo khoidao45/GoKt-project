@@ -108,8 +108,13 @@ export const users = {
     request<UserDto>('/users/me/profile', { method: 'PUT', body: JSON.stringify(data) }),
 }
 
-// VehicleType enum must match backend: Economy=1, Comfort=2, Premium=3
-const VEHICLE_TYPE_MAP: Record<string, number> = { Economy: 1, Comfort: 2, Premium: 3 }
+// VehicleType enum must match backend: ElectricBike=1, Seat4=2, Seat7=3, Seat9=4
+const VEHICLE_TYPE_MAP: Record<string, number> = {
+  ElectricBike: 1,
+  Seat4: 2,
+  Seat7: 3,
+  Seat9: 4,
+}
 const toVehicleTypeInt = (v: string) => VEHICLE_TYPE_MAP[v] ?? 1
 
 // ─── Rides ───────────────────────────────────────────────────────────────────
@@ -163,5 +168,5 @@ export const notificationsApi = {
   list: (page = 1, pageSize = 20) =>
     request<NotificationDto[]>(`/notifications?page=${page}&pageSize=${pageSize}`),
   markRead: (ids: string[]) =>
-    request<void>('/notifications/read', { method: 'PUT', body: JSON.stringify({ ids }) }),
+    request<void>('/notifications/read', { method: 'PUT', body: JSON.stringify({ notificationIds: ids }) }),
 }

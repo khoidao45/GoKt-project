@@ -28,7 +28,7 @@ public sealed class GetNearbyDriversQueryHandler(
             var fullName = user?.Profile != null
                 ? $"{user.Profile.FirstName} {user.Profile.LastName}".Trim()
                 : user?.Email ?? "Driver";
-            result.Add(DriverDto.From(driver, fullName));
+            result.Add(DriverDto.From(driver, fullName, user?.Profile?.AvatarUrl));
         }
 
         return result;

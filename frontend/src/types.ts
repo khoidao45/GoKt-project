@@ -55,6 +55,14 @@ export interface TripDto {
   cancellationReason?: string | null
   customerRating?: number | null
   driverRating?: number | null
+  driverName?: string | null
+  driverAvatarUrl?: string | null
+  vehicleMake?: string | null
+  vehicleModel?: string | null
+  vehicleColor?: string | null
+  vehiclePlateNumber?: string | null
+  vehicleSeatCount?: number | null
+  vehicleImageUrl?: string | null
 }
 
 export interface NotificationDto {

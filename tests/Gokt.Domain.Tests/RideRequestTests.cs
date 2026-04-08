@@ -15,13 +15,13 @@ public class RideRequestTests
             customerId,
             10.123, 106.123, "A",
             10.456, 106.456, "B",
-            VehicleType.Economy,
+            VehicleType.Seat4,
             50000m,
             4.2m);
 
         Assert.Equal(customerId, ride.CustomerId);
         Assert.Equal(RideStatus.Pending, ride.Status);
-        Assert.Equal(VehicleType.Economy, ride.RequestedVehicleType);
+        Assert.Equal(VehicleType.Seat4, ride.RequestedVehicleType);
         Assert.Equal(50000m, ride.EstimatedFare);
         Assert.Equal(4.2m, ride.EstimatedDistanceKm);
         Assert.True(ride.ExpiresAt > ride.CreatedAt);
@@ -34,7 +34,7 @@ public class RideRequestTests
             Guid.NewGuid(),
             10, 106, "A",
             11, 107, "B",
-            VehicleType.Comfort,
+            VehicleType.Seat7,
             100000m);
 
         ride.StartSearching();

@@ -83,7 +83,7 @@ public class RedisLocationService(
         var db = redis.GetDatabase();
         var statusJson = await db.StringGetAsync(StatusKey(driverId));
         var entry = statusJson.IsNullOrEmpty
-            ? new DriverStatusEntry(true, true, "Economy", DateTime.UtcNow)
+                        ? new DriverStatusEntry(true, true, "Seat4", DateTime.UtcNow)
             : JsonSerializer.Deserialize<DriverStatusEntry>(statusJson!)! with { IsBusy = true, UpdatedAt = DateTime.UtcNow };
 
         await db.StringSetAsync(StatusKey(driverId), JsonSerializer.Serialize(entry), StatusTtl);

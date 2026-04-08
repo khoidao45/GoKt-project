@@ -1,0 +1,286 @@
+Update Todos
+
+Create OutboxStatus enum and OutboxEvent entity in Domain layer
+
+Create IOutboxRepository interface in Application layer
+
+Add PublishRawAsync to IEventPublisher + implement in KafkaEventPublisher
+
+Add OutboxEvent EF configuration + DbSet to AppDbContext
+
+Implement OutboxRepository
+
+Implement OutboxProcessor background service
+
+Modify CreateRideRequestCommand to write to outbox instead of direct Kafka
+
+Register outbox services in DependencyInjection.cs
+
+Run EF migration for OutboxEvents table
+
+Build and verify zero errors
+Everything is implemented. Here is a complete breakdown of what was built and why each decision was made.
+
+What was implemented
+Folder structure
+
+src/Gokt.Domain/
+  Enums/OutboxStatus.cs                         ← Pending / Processed / Failed
+  Entities/OutboxEvent.cs                       ← Rich aggregate with state machine
+
+src/Gokt.Application/
+  Interfaces/IOutboxRepository.cs               ← Application-layer contract
+  Interfaces/IEventPublisher.cs                 ← +PublishRawAsync() overload
+  Commands/Rides/CreateRideRequestCommand.cs    ← MODIFIED — writes to outbox
+
+src/Gokt.Infrastructure/
+  Persistence/
+    AppDbContext.cs                             ← +DbSet<OutboxEvent>
+    AppDbContextFactory.cs                      ← Design-time factory for migrations
+    Configurations/OutboxEventConfiguration.cs  ← EF mapping + composite index
+    Migrations/20260405032939_AddOutboxEvents   ← Generated migration
+  Repositories/OutboxRepository.cs              ← FOR UPDATE SKIP LOCKED
+  Messaging/KafkaEventPublisher.cs              ← +PublishRawAsync, idempotent producer
+  BackgroundServices/OutboxProcessor.cs         ← Polling worker
+Sequence diagram
+
+HTTP POST /rides/request
+│
+├─ CreateRideRequestCommandHandler
+│   ├─ RideRequest.Create(...)              ┐
+│   ├─ request.StartSearching()             │  One EF SaveChanges
+│   └─ OutboxEvent.Create(                 │  = one atomic PostgreSQL transaction
+│         type:       "ride.requested",    │
+│         messageKey: rideRequest.Id,      │
+│         payload:    JSON)                ┘
+│
+└─ HTTP 201 response immediately returned
+
+                   (every 2 seconds)
+OutboxProcessor
+│
+├─ BEGIN TRANSACTION
+├─ SELECT * FROM OutboxEvents
+│    WHERE Status='Pending'
+│    ORDER BY CreatedAt
+│    LIMIT 20
+│    FOR UPDATE SKIP LOCKED        ← multiple instances safe
+│
+├─ For each event:
+│   ├─ KafkaPublisher.PublishRawAsync(type, key, payload)
+│   │   ├─ success → event.MarkProcessed()
+│   │   └─ fail    → event.IncrementRetry()
+│   │                  if RetryCount >= 5 → event.MarkFailed()
+│
+├─ db.SaveChangesAsync()
+└─ COMMIT TRANSACTION
+
+                   (Kafka is up)
+MatchingWorker / KafkaMatchingConsumer
+│
+└─ Consume "ride.requested"
+    └─ IMatchingService.StartMatchingAsync(rideRequestId)
+        └─ AutoMatchingStrategy → wave-based driver matching
+Key design decisions
+Decision	Reason
+Same SaveChangesAsync for ride + outbox	Guarantees atomicity — if DB commit fails, no orphan Kafka message is produced
+FOR UPDATE SKIP LOCKED	Multiple OutboxProcessor instances (API + MatchingWorker) never process the same row
+MessageKey stored on OutboxEvent	Kafka partition routing is stable on replay; the consumer sees the same key on retry
+PublishRawAsync	Payload is already serialized when stored; avoids double-serialization
+EnableIdempotence = true on producer	Kafka producer-side deduplication within a session (network retries don't produce duplicates)
+LastError column on OutboxEvent	Failed events are self-documenting in the DB — no grep-through-logs needed
+IDesignTimeDbContextFactory	Migrations work without needing Redis/Kafka running
+Max 5 retries → Failed status	Events that exceed retries are visible for alerting rather than silently dropped
+Test scenarios
+Scenario 1 — Kafka is DOWN:
+
+
+-- Customer creates a ride request
+-- DB state immediately after POST:
+SELECT Id, Type, Status, RetryCount FROM "OutboxEvents";
+-- → 1 row, Status='Pending'  ✓ event is NOT lost
+Scenario 2 — Kafka comes back UP:
+
+
+OutboxProcessor polls → finds Pending event
+→ PublishRawAsync succeeds
+→ Status = 'Processed', ProcessedAt = now
+→ MatchingWorker receives the message
+Scenario 3 — Persistent Kafka failure (5+ retries):
+
+
+SELECT Id, Status, RetryCount, LastError FROM "OutboxEvents"
+WHERE Status = 'Failed';
+-- → rows visible for alerting / manual replay
+Scenario 4 — Two OutboxProcessor instances race:
+
+
+Instance A: SELECT … FOR UPDATE SKIP LOCKED → locks rows 1-20
+Instance B: SELECT … FOR UPDATE SKIP LOCKED → gets rows 21-40 (skips locked)
+No duplicate processing ✓
+c:\Users\MINH KHOI\source\repos\Gokt\README.md
+1. THIẾU DEAD LETTER / REPLAY
+
+Hiện tại:
+
+Retry > 5 → Failed
+
+👉 OK… nhưng:
+
+❌ rồi sao nữa?
+Show less
+Good catch. Let me look at the current state before implementing:
+
+Read c:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Infrastructure\BackgroundServices\OutboxProcessor.cs
+Read c:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Application\Interfaces\IOutboxRepository.cs
+Globpattern: "Gokt/Controllers/**/*.cs"
+Found 6 files
+Read c:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Domain\Entities\OutboxEvent.cs
+Read c:\Users\MINH KHOI\source\repos\Gokt\Gokt\Controllers\RidesController.cs
+Three things needed: DLQ publish, replay command, and admin endpoint. Let me implement all three:
+
+Update Todos
+
+Add ResetForReplay() to OutboxEvent entity
+
+Extend IOutboxRepository with GetFailedBatchAsync + ReplayAsync
+
+Publish to DLQ topic in OutboxProcessor when max retries exceeded
+
+Create OutboxEventDto + GetFailedOutboxQuery + ReplayOutboxCommand
+
+Implement OutboxRepository new methods
+
+Create OutboxController admin endpoint
+
+Build and verify
+Step 1 — add ResetForReplay() to the domain entity:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Domain\Entities\OutboxEvent.cs
+Added 12 lines
+Step 2 — extend IOutboxRepository:
+
+Write c:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Application\Interfaces\IOutboxRepository.cs
+31 lines
+Update Todos
+
+Add ResetForReplay() to OutboxEvent entity
+
+Extend IOutboxRepository with GetFailedBatchAsync + ReplayAsync
+
+Publish to DLQ topic in OutboxProcessor when max retries exceeded
+
+Create OutboxEventDto + GetFailedOutboxQuery + ReplayOutboxCommand
+
+Implement OutboxRepository new methods
+
+Create OutboxController admin endpoint
+
+Build and verify
+Step 3 — DLQ publish in OutboxProcessor:
+
+Write c:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Infrastructure\BackgroundServices\OutboxProcessor.cs
+175 lines
+You've hit your limit · resets 2pm (Asia/Saigon)
+
+
+Mình đã lấy được log chi tiết cho lượt chạy đầy đủ (bao gồm mã trạng thái từng endpoint). Mình sẽ trích thêm nguyên nhân lỗi 500 từ log server để nói chính xác bạn cần sửa gì trước.
+
+Read content.txt
+
+Đã chạy rồi, mình đã gọi lần lượt toàn bộ endpoint trong 6 controller của API.
+
+Kết quả chạy thực tế (đợt full có auth)
+
+Tổng endpoint đã gọi: 28
+Thành công 200/204: Auth.Login (2 account), Auth.ForgotPassword, Auth.ChangePassword, Users (me, profile, sessions, revoke), Rides.Estimate, Rides.Active, Drivers.Nearby, Trips.History, Notifications.GetAll, Notifications.MarkRead, Auth.Logout, Auth.LogoutAll
+Lỗi nghiệp vụ dự kiến:
+400: Auth.ResetPassword (token invalid), Auth.VerifyEmail (token invalid)
+403: Auth.Refresh (account chưa active)
+404: các API driver thao tác hồ sơ driver khi user chưa có bản ghi driver tương ứng
+409: Drivers.Register (license trùng)
+Lỗi hệ thống cần sửa ngay:
+500 ở Auth.Register và Rides.CreateRequest
+Log cho thấy lỗi nền Kafka/Redis đang làm hệ thống không ổn định:
+Kafka publisher lỗi cấu hình acks/enable.idempotence tại KafkaEventPublisher.cs:25
+Redis kết nối lỗi TLS/auth khi cache set/remove tại CacheService.cs:20
+Những gì mình đã dùng để test
+
+Script smoke flow đầy đủ có auth: api-smoke.ps1
+Script quét route-level toàn endpoint có timeout: api-route-check.ps1
+Bạn cần làm tiếp theo
+
+Sửa cấu hình Kafka producer (acks=all khi bật idempotence) để dừng lỗi nền Outbox.
+Sửa Redis connection string (đúng SSL/TLS, host/port/password) hoặc tắt các service phụ thuộc Redis khi chạy local.
+Sau khi fix 2 điểm trên, mình chạy lại full smoke test và xuất cho bạn bảng pass/fail sạch theo từng endpoint (kèm request/response mẫu).
+
+Now create the MapPicker component:
+
+Write c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\components\MapPicker.tsx
+183 lines
+Now update LoginPage and RegisterPage with Google button:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+Added 1 line
+The user is seeing diagnostic warnings. Let me continue building the LoginPage with the Google button properly integrated, and fix the warnings too. Let me rewrite the LoginPage to include the Google OAuth button properly.
+
+Tiếp tục build - rewrite LoginPage với Google button đầy đủ:
+
+Write c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+142 lines
+The error is about the locale prop not existing on GoogleLogin and the onSuccess type mismatch. Let me fix these.
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+Modified
+The locale prop doesn't exist on GoogleLogin. Let me remove it.
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+Removed 1 line
+Now add Google button to RegisterPage and update DashboardPage with map:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\RegisterPage.tsx
+Added 2 lines
+Let me rewrite RegisterPage.tsx properly.
+
+Read c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\RegisterPage.tsx
+Write c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\RegisterPage.tsx
+208 lines
+The warning is just a hint (deprecated FormEvent), not an error. It won't break anything. Let me continue with the more important work - updating the DashboardPage with the MapPicker and wrapping App.tsx with GoogleOAuthProvider.
+
+Let me continue building the remaining pieces:
+
+Update App.tsx to wrap with GoogleOAuthProvider
+Update DashboardPage request tab to use MapPicker
+Chỉ là hint (deprecated), không phải lỗi — không ảnh hưởng build. Tiếp tục với phần quan trọng hơn.
+
+Cập nhật App.tsx với GoogleOAuthProvider và DashboardPage với map:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Added 3 lines
+I need to actually use GoogleOAuthProvider in the App.tsx return statement. Let me read the full App.tsx first to see what needs to be changed.
+
+Read c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Added 1 line
+I need to add the closing tag for GoogleOAuthProvider before the closing return brace.
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Added 1 line
+Now update DashboardPage to integrate the map into the "Đặt xe" tab:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 2 lines
+Now replace the ride form state and tab content to use the map:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Modified
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 25 lines
+Now add the reverseGeocode helper at the top of the file (before the component):
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 15 lines
+Now replace the entire Request Tab JSX:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 34 lines

@@ -20,6 +20,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PricingRule> PricingRules => Set<PricingRule>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
+    public DbSet<DriverWallet> DriverWallets => Set<DriverWallet>();
+    public DbSet<DriverWalletTransaction> DriverWalletTransactions => Set<DriverWalletTransaction>();
+    public DbSet<DriverDailyKpi> DriverDailyKpis => Set<DriverDailyKpi>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

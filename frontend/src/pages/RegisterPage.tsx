@@ -7,6 +7,7 @@ import type { UserDto } from '../types'
 
 interface Props {
   onLogin: (user: UserDto, token: string) => void
+  googleEnabled?: boolean
 }
 
 function checkPwd(p: string) {
@@ -19,7 +20,7 @@ function checkPwd(p: string) {
   }
 }
 
-export default function RegisterPage({ onLogin }: Props) {
+export default function RegisterPage({ onLogin, googleEnabled = false }: Props) {
   const nav = useNavigate()
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '', password: '', confirm: '',
@@ -99,20 +100,22 @@ export default function RegisterPage({ onLogin }: Props) {
           </div>
         )}
 
-        {/* Google sign-up */}
-        <div style={{ marginBottom: 16 }}>
-          <GoogleLogin
-            onSuccess={handleGoogle}
-            onError={() => setError('Đăng nhập Google thất bại')}
-            width="100%"
-            text="signup_with"
-            shape="rectangular"
-            theme="outline"
-            size="large"
-          />
-        </div>
-
-        <div className="divider">hoặc đăng ký bằng email</div>
+        {googleEnabled && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <GoogleLogin
+                onSuccess={handleGoogle}
+                onError={() => setError('Đăng nhập Google thất bại')}
+                width="100%"
+                text="signup_with"
+                shape="rectangular"
+                theme="outline"
+                size="large"
+              />
+            </div>
+            <div className="divider">hoặc đăng ký bằng email</div>
+          </>
+        )}
 
         <form onSubmit={submit}>
           <div className="field-row">

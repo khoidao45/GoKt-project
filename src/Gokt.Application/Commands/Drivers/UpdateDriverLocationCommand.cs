@@ -32,7 +32,7 @@ public sealed class UpdateDriverLocationCommandHandler(
         await unitOfWork.SaveChangesAsync(ct);
 
         // Sync to Redis GEO
-        var vehicleType = driver.Vehicles.FirstOrDefault()?.VehicleType.ToString() ?? "Economy";
+        var vehicleType = driver.Vehicles.FirstOrDefault()?.VehicleType.ToString() ?? "Seat4";
         await locationService.UpdateDriverLocationAsync(
             driver.Id, cmd.Latitude, cmd.Longitude,
             driver.IsOnline, driver.IsBusy, vehicleType, ct);
