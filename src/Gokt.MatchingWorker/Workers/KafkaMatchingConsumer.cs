@@ -73,6 +73,8 @@ public class KafkaMatchingConsumer(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Unexpected error processing Kafka message");
+
+                await Task.Delay(2000, stoppingToken);
             }
         }
 
