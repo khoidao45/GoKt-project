@@ -44,6 +44,22 @@ public class User
         return user;
     }
 
+    public static User CreateOAuth(string email, string? firstName, string? lastName, string? avatarUrl = null)
+    {
+        var user = new User
+        {
+            Email = email.ToLowerInvariant().Trim(),
+            EmailVerified = true,
+            Status = UserStatus.Active,
+        };
+
+        user.Profile = UserProfile.Create(user.Id, firstName, lastName, avatarUrl);
+        user.Security = UserSecurity.Create(user.Id);
+        user._domainEvents.Add(new UserRegisteredEvent(user.Id, user.Email));
+
+        return user;
+    }
+
     public void VerifyEmail()
     {
         EmailVerified = true;

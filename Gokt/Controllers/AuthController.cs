@@ -1,5 +1,6 @@
 using Gokt.Application.Commands.Auth.ChangePassword;
 using Gokt.Application.Commands.Auth.ForgotPassword;
+using Gokt.Application.Commands.Auth.GoogleOAuth;
 using Gokt.Application.Commands.Auth.Login;
 using Gokt.Application.Commands.Auth.Logout;
 using Gokt.Application.Commands.Auth.RefreshToken;
@@ -128,6 +129,18 @@ public class AuthController(IMediator mediator) : ControllerBase
         return Ok(new { message = "Password changed. All sessions have been revoked." });
     }
 
+    // POST /api/v1/auth/google
+    [HttpPost("google")]
+    [ProducesResponseType(typeof(AuthTokensDto), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> Google([FromBody] GoogleRequest req, CancellationToken ct)
+    {
+        var result = await mediator.Send(new GoogleOAuthCommand(
+            req.IdToken, GetClientIp(), Request.Headers.UserAgent.ToString()), ct);
+        SetRefreshTokenCookie(result.RefreshToken, result.RefreshTokenExpiry);
+        return Ok(result);
+    }
+
     // ── Helpers ─────────────────────────────────────────────────────────────
 
     private Guid CurrentUserId =>
@@ -176,3 +189,4 @@ public record ForgotPasswordRequest(string Email);
 public record ResetPasswordRequest(string Token, string NewPassword);
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+public record GoogleRequest(string IdToken);

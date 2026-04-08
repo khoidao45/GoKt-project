@@ -68,6 +68,16 @@ public sealed class RegisterCommandHandler(
 
         user.UserRoles.Add(UserRole.Create(user.Id, riderRole.Id));
 
+        // Issue tokens BEFORE saving so we can create session in one SaveChanges call
+        var (accessToken, accessExpiry) = tokenService.GenerateAccessToken(user);
+        var (rawRefresh, refreshExpiry) = tokenService.GenerateRefreshToken();
+
+        var session = UserSession.Create(
+            user.Id, tokenService.HashToken(rawRefresh), refreshExpiry,
+            cmd.IpAddress, cmd.UserAgent);
+
+        user.Sessions.Add(session);
+
         await userRepository.AddAsync(user, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
@@ -80,18 +90,7 @@ public sealed class RegisterCommandHandler(
             ct);
 
         // Send verification email (non-blocking — failures are logged, not thrown)
-        _ = emailService.SendVerificationEmailAsync(user.Email, rawToken, user.Id);
-
-        // Issue tokens immediately so user can start using the app
-        var (accessToken, accessExpiry) = tokenService.GenerateAccessToken(user);
-        var (rawRefresh, refreshExpiry) = tokenService.GenerateRefreshToken();
-
-        var session = UserSession.Create(
-            user.Id, tokenService.HashToken(rawRefresh), refreshExpiry,
-            cmd.IpAddress, cmd.UserAgent);
-
-        user.Sessions.Add(session);
-        await unitOfWork.SaveChangesAsync(ct);
+        _ = emailService.SendVerificationEmailAsync(user.Email, rawToken, user.Id, CancellationToken.None);
 
         user.ClearDomainEvents();
 

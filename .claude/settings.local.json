@@ -5,7 +5,8 @@
       "Bash(dotnet tool:*)",
       "Bash(dotnet ef:*)",
       "Bash(dotnet add:*)",
-      "Bash(dotnet new:*)"
+      "Bash(dotnet new:*)",
+      "Bash(docker compose:*)"
     ]
   }
 }

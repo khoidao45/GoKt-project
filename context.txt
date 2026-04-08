@@ -182,3 +182,105 @@ Step 3 — DLQ publish in OutboxProcessor:
 Write c:\Users\MINH KHOI\source\repos\Gokt\src\Gokt.Infrastructure\BackgroundServices\OutboxProcessor.cs
 175 lines
 You've hit your limit · resets 2pm (Asia/Saigon)
+
+
+Mình đã lấy được log chi tiết cho lượt chạy đầy đủ (bao gồm mã trạng thái từng endpoint). Mình sẽ trích thêm nguyên nhân lỗi 500 từ log server để nói chính xác bạn cần sửa gì trước.
+
+Read content.txt
+
+Đã chạy rồi, mình đã gọi lần lượt toàn bộ endpoint trong 6 controller của API.
+
+Kết quả chạy thực tế (đợt full có auth)
+
+Tổng endpoint đã gọi: 28
+Thành công 200/204: Auth.Login (2 account), Auth.ForgotPassword, Auth.ChangePassword, Users (me, profile, sessions, revoke), Rides.Estimate, Rides.Active, Drivers.Nearby, Trips.History, Notifications.GetAll, Notifications.MarkRead, Auth.Logout, Auth.LogoutAll
+Lỗi nghiệp vụ dự kiến:
+400: Auth.ResetPassword (token invalid), Auth.VerifyEmail (token invalid)
+403: Auth.Refresh (account chưa active)
+404: các API driver thao tác hồ sơ driver khi user chưa có bản ghi driver tương ứng
+409: Drivers.Register (license trùng)
+Lỗi hệ thống cần sửa ngay:
+500 ở Auth.Register và Rides.CreateRequest
+Log cho thấy lỗi nền Kafka/Redis đang làm hệ thống không ổn định:
+Kafka publisher lỗi cấu hình acks/enable.idempotence tại KafkaEventPublisher.cs:25
+Redis kết nối lỗi TLS/auth khi cache set/remove tại CacheService.cs:20
+Những gì mình đã dùng để test
+
+Script smoke flow đầy đủ có auth: api-smoke.ps1
+Script quét route-level toàn endpoint có timeout: api-route-check.ps1
+Bạn cần làm tiếp theo
+
+Sửa cấu hình Kafka producer (acks=all khi bật idempotence) để dừng lỗi nền Outbox.
+Sửa Redis connection string (đúng SSL/TLS, host/port/password) hoặc tắt các service phụ thuộc Redis khi chạy local.
+Sau khi fix 2 điểm trên, mình chạy lại full smoke test và xuất cho bạn bảng pass/fail sạch theo từng endpoint (kèm request/response mẫu).
+
+Now create the MapPicker component:
+
+Write c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\components\MapPicker.tsx
+183 lines
+Now update LoginPage and RegisterPage with Google button:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+Added 1 line
+The user is seeing diagnostic warnings. Let me continue building the LoginPage with the Google button properly integrated, and fix the warnings too. Let me rewrite the LoginPage to include the Google OAuth button properly.
+
+Tiếp tục build - rewrite LoginPage với Google button đầy đủ:
+
+Write c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+142 lines
+The error is about the locale prop not existing on GoogleLogin and the onSuccess type mismatch. Let me fix these.
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+Modified
+The locale prop doesn't exist on GoogleLogin. Let me remove it.
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\LoginPage.tsx
+Removed 1 line
+Now add Google button to RegisterPage and update DashboardPage with map:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\RegisterPage.tsx
+Added 2 lines
+Let me rewrite RegisterPage.tsx properly.
+
+Read c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\RegisterPage.tsx
+Write c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\RegisterPage.tsx
+208 lines
+The warning is just a hint (deprecated FormEvent), not an error. It won't break anything. Let me continue with the more important work - updating the DashboardPage with the MapPicker and wrapping App.tsx with GoogleOAuthProvider.
+
+Let me continue building the remaining pieces:
+
+Update App.tsx to wrap with GoogleOAuthProvider
+Update DashboardPage request tab to use MapPicker
+Chỉ là hint (deprecated), không phải lỗi — không ảnh hưởng build. Tiếp tục với phần quan trọng hơn.
+
+Cập nhật App.tsx với GoogleOAuthProvider và DashboardPage với map:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Added 3 lines
+I need to actually use GoogleOAuthProvider in the App.tsx return statement. Let me read the full App.tsx first to see what needs to be changed.
+
+Read c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Added 1 line
+I need to add the closing tag for GoogleOAuthProvider before the closing return brace.
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\App.tsx
+Added 1 line
+Now update DashboardPage to integrate the map into the "Đặt xe" tab:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 2 lines
+Now replace the ride form state and tab content to use the map:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Modified
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 25 lines
+Now add the reverseGeocode helper at the top of the file (before the component):
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 15 lines
+Now replace the entire Request Tab JSX:
+
+Edit c:\Users\MINH KHOI\source\repos\Gokt\frontend\src\pages\DashboardPage.tsx
+Added 34 lines

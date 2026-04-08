@@ -25,7 +25,7 @@ public class DriversController(IMediator mediator) : ControllerBase
     [ProducesResponseType(typeof(DriverDto), 201)]
     public async Task<IActionResult> Register([FromBody] RegisterDriverRequest req, CancellationToken ct)
     {
-        var result = await mediator.Send(new RegisterDriverCommand(CurrentUserId, req.LicenseNumber, req.LicenseExpiry), ct);
+        var result = await mediator.Send(new RegisterDriverCommand(CurrentUserId, req.LicenseNumber, DateTime.SpecifyKind(req.LicenseExpiry, DateTimeKind.Utc)), ct);
         return StatusCode(201, result);
     }
 

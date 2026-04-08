@@ -34,8 +34,11 @@ public sealed class RefreshTokenCommandHandler(
         var user = await userRepository.GetByIdWithRolesAsync(session.UserId, ct)
             ?? throw new UnauthorizedException("User not found.");
 
-        if (!user.IsActive())
-            throw new ForbiddenException("Account is not active.");
+        if (user.Status == Domain.Enums.UserStatus.Suspended)
+            throw new ForbiddenException("Your account has been suspended.");
+
+        if (user.Status == Domain.Enums.UserStatus.Deleted)
+            throw new UnauthorizedException("User not found.");
 
         // Rotate: old session gets ReplacedByTokenHash set; new hash replaces it
         var (newRawRefresh, newRefreshExpiry) = tokenService.GenerateRefreshToken();

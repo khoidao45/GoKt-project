@@ -17,8 +17,8 @@ public class UserProfile
 
     private UserProfile() { }
 
-    public static UserProfile Create(Guid userId, string? firstName, string? lastName) =>
-        new() { UserId = userId, FirstName = firstName, LastName = lastName };
+    public static UserProfile Create(Guid userId, string? firstName, string? lastName, string? avatarUrl = null) =>
+        new() { UserId = userId, FirstName = firstName, LastName = lastName, AvatarUrl = avatarUrl };
 
     public void Update(string? firstName, string? lastName, string? avatarUrl,
         DateOnly? dateOfBirth, string? gender, string? address)
