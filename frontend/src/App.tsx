@@ -7,12 +7,19 @@ import type { UserDto } from './types'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
 const GOOGLE_AUTH_ENABLED = GOOGLE_CLIENT_ID.trim().length > 0
 
+const roleHome = (roles?: string[]) =>
+  roles?.includes('ADMIN') ? '/admin'
+  : roles?.includes('DRIVER') ? '/driver'
+  : '/dashboard'
+
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import VerifyEmailPage from './pages/VerifyEmailPage'
 import DashboardPage from './pages/DashboardPage'
+import DriverDashboardPage from './pages/DriverDashboardPage'
+import AdminDashboardPage from './pages/AdminDashboardPage'
 
 export default function App() {
   const [user, setUser] = useState<UserDto | null>(null)
@@ -67,17 +74,17 @@ export default function App() {
         {/* Public routes */}
         <Route
           path="/login"
-          element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={handleLogin} googleEnabled={GOOGLE_AUTH_ENABLED} />}
+          element={user ? <Navigate to={roleHome(user.roles)} replace /> : <LoginPage onLogin={handleLogin} googleEnabled={GOOGLE_AUTH_ENABLED} />}
         />
         <Route
           path="/register"
-          element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage onLogin={handleLogin} googleEnabled={GOOGLE_AUTH_ENABLED} />}
+          element={user ? <Navigate to={roleHome(user.roles)} replace /> : <RegisterPage onLogin={handleLogin} googleEnabled={GOOGLE_AUTH_ENABLED} />}
         />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password"  element={<ResetPasswordPage />} />
         <Route path="/verify-email"    element={<VerifyEmailPage />} />
 
-        {/* Protected route */}
+        {/* Protected routes */}
         <Route
           path="/dashboard"
           element={
@@ -86,9 +93,30 @@ export default function App() {
               : <Navigate to="/login" replace />
           }
         />
+        <Route
+          path="/driver"
+          element={
+            user
+              ? <DriverDashboardPage user={user} onLogout={handleLogout} />
+              : <Navigate to="/login" replace />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            user
+              ? user.roles?.includes('ADMIN')
+                ? <AdminDashboardPage user={user} onLogout={handleLogout} />
+                : <Navigate to="/dashboard" replace />
+              : <Navigate to="/login" replace />
+          }
+        />
 
         {/* Default redirect */}
-        <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+        <Route
+          path="*"
+          element={<Navigate to={user ? roleHome(user.roles) : '/login'} replace />}
+        />
       </Routes>
     </BrowserRouter>
   )

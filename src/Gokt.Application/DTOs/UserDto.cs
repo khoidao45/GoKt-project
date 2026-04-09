@@ -38,6 +38,13 @@ public record AuthTokensDto(
     UserDto User
 );
 
+public record RegisterResultDto(
+    Guid UserId,
+    string Email,
+    DateTime VerificationExpiresAt,
+    string Message
+);
+
 public record SessionDto(
     Guid Id,
     string? IpAddress,

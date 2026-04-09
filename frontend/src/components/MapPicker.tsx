@@ -33,6 +33,7 @@ interface Props {
   onDropoffChange: (pos: LatLng, address: string) => void
   /** 'pickup' = next click sets pickup, 'dropoff' = next click sets dropoff */
   mode: 'pickup' | 'dropoff'
+  height?: number
 }
 
 async function reverseGeocode(lat: number, lng: number): Promise<string> {
@@ -48,7 +49,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
   }
 }
 
-export default function MapPicker({ pickup, dropoff, onPickupChange, onDropoffChange, mode }: Props) {
+export default function MapPicker({ pickup, dropoff, onPickupChange, onDropoffChange, mode, height = 320 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const pickupMarkerRef = useRef<L.Marker | null>(null)
@@ -147,7 +148,7 @@ export default function MapPicker({ pickup, dropoff, onPickupChange, onDropoffCh
 
   return (
     <div style={{ position: 'relative' }}>
-      <div ref={containerRef} style={{ height: 320, borderRadius: 12, overflow: 'hidden', border: '1.5px solid var(--border)' }} />
+      <div ref={containerRef} style={{ height, borderRadius: 12, overflow: 'hidden', border: '1.5px solid var(--border)' }} />
 
       {/* Legend overlay */}
       <div style={{

@@ -23,7 +23,7 @@ public class AuthController(IMediator mediator) : ControllerBase
 {
     // POST /api/v1/auth/register
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthTokensDto), 201)]
+    [ProducesResponseType(typeof(RegisterResultDto), 201)]
     [ProducesResponseType(400)]
     [ProducesResponseType(409)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req, CancellationToken ct)
@@ -102,6 +102,22 @@ public class AuthController(IMediator mediator) : ControllerBase
     {
         await mediator.Send(new VerifyEmailCommand(userId, token), ct);
         return Ok(new { message = "Email verified successfully." });
+    }
+
+    // POST /api/v1/auth/verify-email-token
+    [HttpPost("verify-email-token")]
+    public async Task<IActionResult> VerifyEmailToken([FromBody] VerifyEmailTokenRequest req, CancellationToken ct)
+    {
+        await mediator.Send(new VerifyEmailByTokenCommand(req.Email, req.Token), ct);
+        return Ok(new { message = "Email verified successfully." });
+    }
+
+    // POST /api/v1/auth/resend-verification
+    [HttpPost("resend-verification")]
+    public async Task<IActionResult> ResendVerification([FromBody] ResendVerificationRequest req, CancellationToken ct)
+    {
+        await mediator.Send(new ResendVerificationEmailCommand(req.Email), ct);
+        return Ok(new { message = "Nếu email tồn tại và chưa xác thực, mã xác thực mới đã được gửi." });
     }
 
     // POST /api/v1/auth/forgot-password
@@ -183,6 +199,10 @@ public record RefreshRequest(string RefreshToken);
 public record LogoutRequest(string? RefreshToken);
 
 public record VerifyEmailRequest(Guid UserId, string Token);
+
+public record VerifyEmailTokenRequest(string Email, string Token);
+
+public record ResendVerificationRequest(string Email);
 
 public record ForgotPasswordRequest(string Email);
 

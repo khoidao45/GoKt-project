@@ -51,6 +51,37 @@ public class DriverRepository(AppDbContext db) : IDriverRepository
             .Include(d => d.Vehicles.Where(v => v.IsActive))
             .FirstOrDefaultAsync(d => d.DriverCode == driverCode, ct);
 
+    public async Task<IEnumerable<Driver>> GetAllAsync(int page, int pageSize, DriverStatus? status = null, CancellationToken ct = default)
+    {
+        var query = db.Drivers
+            .Include(d => d.User).ThenInclude(u => u.Profile)
+            .Include(d => d.Vehicles)
+            .AsQueryable();
+
+        if (status.HasValue)
+            query = query.Where(d => d.Status == status.Value);
+
+        return await query
+            .OrderByDescending(d => d.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> CountAsync(DriverStatus? status = null, CancellationToken ct = default)
+    {
+        var query = db.Drivers.AsQueryable();
+        if (status.HasValue)
+            query = query.Where(d => d.Status == status.Value);
+        return await query.CountAsync(ct);
+    }
+
+    public Task UpdateAsync(Driver driver, CancellationToken ct = default)
+    {
+        db.Drivers.Update(driver);
+        return Task.CompletedTask;
+    }
+
     private static double HaversineKm(double lat1, double lng1, double lat2, double lng2)
     {
         const double R = 6371;

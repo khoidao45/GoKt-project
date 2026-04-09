@@ -15,7 +15,7 @@ public record RegisterCommand(
     string? Phone,
     string? IpAddress,
     string? UserAgent
-) : IRequest<AuthTokensDto>;
+) : IRequest<RegisterResultDto>;
 
 public sealed class RegisterCommandValidator : AbstractValidator<RegisterCommand>
 {
@@ -45,16 +45,33 @@ public sealed class RegisterCommandHandler(
     IUserRepository userRepository,
     IRoleRepository roleRepository,
     IPasswordHasher passwordHasher,
-    ITokenService tokenService,
     IEmailService emailService,
     ICacheService cacheService,
     IAuditService auditService,
-    IUnitOfWork unitOfWork) : IRequestHandler<RegisterCommand, AuthTokensDto>
+    ITokenService tokenService,
+    IUnitOfWork unitOfWork) : IRequestHandler<RegisterCommand, RegisterResultDto>
 {
-    public async Task<AuthTokensDto> Handle(RegisterCommand cmd, CancellationToken ct)
+    private static readonly TimeSpan VerificationTtl = TimeSpan.FromMinutes(10);
+
+    public async Task<RegisterResultDto> Handle(RegisterCommand cmd, CancellationToken ct)
     {
-        if (await userRepository.ExistsByEmailAsync(cmd.Email, ct))
-            throw new ConflictException("Email is already registered.");
+        var existing = await userRepository.GetByEmailWithSecurityAsync(cmd.Email, ct);
+        if (existing is not null)
+        {
+            if (existing.EmailVerified)
+                throw new ConflictException("Email is already registered.");
+
+            var age = DateTime.UtcNow - existing.CreatedAt;
+            if (age < VerificationTtl)
+            {
+                var remaining = VerificationTtl - age;
+                throw new ConflictException($"Email chưa xác thực. Vui lòng xác thực hoặc chờ {Math.Ceiling(remaining.TotalMinutes)} phút để đăng ký lại.");
+            }
+
+            // Reclaim expired unverified account so the same email can register again.
+            existing.SoftDelete();
+            await unitOfWork.SaveChangesAsync(ct);
+        }
 
         if (cmd.Phone != null && await userRepository.ExistsByPhoneAsync(cmd.Phone, ct))
             throw new ConflictException("Phone number is already registered.");
@@ -68,16 +85,6 @@ public sealed class RegisterCommandHandler(
 
         user.UserRoles.Add(UserRole.Create(user.Id, riderRole.Id));
 
-        // Issue tokens BEFORE saving so we can create session in one SaveChanges call
-        var (accessToken, accessExpiry) = tokenService.GenerateAccessToken(user);
-        var (rawRefresh, refreshExpiry) = tokenService.GenerateRefreshToken();
-
-        var session = UserSession.Create(
-            user.Id, tokenService.HashToken(rawRefresh), refreshExpiry,
-            cmd.IpAddress, cmd.UserAgent);
-
-        user.Sessions.Add(session);
-
         await userRepository.AddAsync(user, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
@@ -86,7 +93,7 @@ public sealed class RegisterCommandHandler(
         await cacheService.SetAsync(
             $"email_verify:{user.Id}",
             tokenService.HashToken(rawToken),
-            TimeSpan.FromMinutes(10),
+            VerificationTtl,
             ct);
 
         // Send verification email (non-blocking — failures are logged, not thrown)
@@ -97,6 +104,10 @@ public sealed class RegisterCommandHandler(
         await auditService.LogAsync("REGISTER", user.Id, cmd.IpAddress, cmd.UserAgent,
             new { email = user.Email }, ct);
 
-        return new AuthTokensDto(accessToken, accessExpiry, rawRefresh, refreshExpiry, UserDto.From(user));
+        return new RegisterResultDto(
+            user.Id,
+            user.Email,
+            DateTime.UtcNow.Add(VerificationTtl),
+            "Đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản trước khi đăng nhập.");
     }
 }

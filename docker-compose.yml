@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: gokt
       POSTGRES_PASSWORD: gokt
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,7 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-  
+
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     depends_on:
@@ -76,6 +76,11 @@ services:
       Jwt__Secret: "${JWT_SECRET:-changeme-in-production-32chars!}"
       Jwt__Issuer: "${JWT_ISSUER:-gokt-api}"
       Jwt__Audience: "${JWT_AUDIENCE:-gokt-clients}"
+      Google__ClientId: "${GOOGLE_CLIENT_ID:-}"
+      SendGrid__ApiKey: "${SendGrid__ApiKey:-}"
+      SendGrid__FromEmail: "${SendGrid__FromEmail:-noreply@gokt.app}"
+      SendGrid__FromName: "${SendGrid__FromName:-Gokt}"
+      App__BaseUrl: "${App__BaseUrl:-http://localhost:8080}"
 
   matching-worker:
     build:

@@ -1,4 +1,5 @@
 using Gokt.Application.Interfaces;
+using Gokt.Domain.Entities;
 using Gokt.Infrastructure.BackgroundServices;
 using Gokt.Infrastructure.Messaging;
 using Gokt.Infrastructure.Persistence;
@@ -72,6 +73,7 @@ public static class DependencyInjection
         services.AddHostedService<RideExpiryWorker>();
         services.AddHostedService<OutboxProcessor>();
         services.AddHostedService<DriverDailyPayrollWorker>();
+        services.AddHostedService<UnverifiedUserCleanupWorker>();
 
         // Kafka event publisher
         services.Configure<KafkaOptions>(configuration.GetSection("Kafka"));
@@ -111,5 +113,27 @@ public static class DependencyInjection
         using var scope = services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
+        await SeedAdminUserAsync(scope.ServiceProvider);
+    }
+
+    private static async Task SeedAdminUserAsync(IServiceProvider sp)
+    {
+        var db = sp.GetRequiredService<AppDbContext>();
+        var hasher = sp.GetRequiredService<IPasswordHasher>();
+
+        const string adminEmail = "admin@gokt.vn";
+        const string adminPassword = "Admin@123456";
+        var adminRoleId = new Guid("a1a1a1a1-0000-0000-0000-000000000003"); // ADMIN role from seed
+
+        // Skip if admin@gokt.vn already exists
+        var existingUser = db.Users.FirstOrDefault(u => u.Email == adminEmail);
+        if (existingUser != null) return;
+
+        var adminUser = Domain.Entities.User.Create(adminEmail, hasher.Hash(adminPassword), "Admin", "Gokt");
+        adminUser.VerifyEmail(); // Admin is immediately active
+        adminUser.UserRoles.Add(Domain.Entities.UserRole.Create(adminUser.Id, adminRoleId));
+
+        db.Users.Add(adminUser);
+        await db.SaveChangesAsync();
     }
 }

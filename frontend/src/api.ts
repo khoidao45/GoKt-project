@@ -1,11 +1,18 @@
 import type {
   ActiveRideDto,
+  AdminDriverDto,
+  AdminStatsDto,
   AuthTokensDto,
+  DriverDto,
   NotificationDto,
+  PagedResult,
   PriceEstimateDto,
+  PricingRuleDto,
+  RegisterResultDto,
   RideRequestDto,
   TripDto,
   UserDto,
+  VehicleDto,
 } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1'
@@ -27,12 +34,16 @@ async function request<T>(path: string, init?: RequestInit, withAuth = true): Pr
   if (!res.ok) {
     let msg = `Lỗi ${res.status}`
     try {
-      const data = await res.json()
-      msg = data?.message || data?.title || msg
-    } catch {
       const text = await res.text()
-      if (text) msg = text
-    }
+      if (text) {
+        try {
+          const data = JSON.parse(text)
+          msg = data?.message || data?.title || text
+        } catch {
+          msg = text
+        }
+      }
+    } catch { /* ignore */ }
     throw new Error(msg)
   }
 
@@ -57,7 +68,7 @@ export const auth = {
     lastName: string
     phone?: string
   }) =>
-    request<AuthTokensDto>(
+    request<RegisterResultDto>(
       '/auth/register',
       { method: 'POST', body: JSON.stringify(data) },
       false,
@@ -83,6 +94,20 @@ export const auth = {
     request<{ message: string }>(
       `/auth/verify-email?userId=${encodeURIComponent(userId)}&token=${encodeURIComponent(token)}`,
       undefined,
+      false,
+    ),
+
+  verifyEmailToken: (email: string, token: string) =>
+    request<{ message: string }>(
+      '/auth/verify-email-token',
+      { method: 'POST', body: JSON.stringify({ email, token }) },
+      false,
+    ),
+
+  resendVerification: (email: string) =>
+    request<{ message: string }>(
+      '/auth/resend-verification',
+      { method: 'POST', body: JSON.stringify({ email }) },
       false,
     ),
 
@@ -160,6 +185,97 @@ export const rides = {
 export const tripsApi = {
   history: (page = 1, pageSize = 10) =>
     request<TripDto[]>(`/trips/history?page=${page}&pageSize=${pageSize}`),
+}
+
+// ─── Drivers ─────────────────────────────────────────────────────────────────
+
+export const driversApi = {
+  register: (licenseNumber: string, licenseExpiry: string) =>
+    request<DriverDto>('/drivers/register', {
+      method: 'POST',
+      body: JSON.stringify({ licenseNumber, licenseExpiry }),
+    }),
+
+  addVehicle: (data: {
+    make: string; model: string; year: number; color: string
+    plateNumber: string; seatCount: number; imageUrl?: string; vehicleType: string
+  }) => request<VehicleDto>('/drivers/vehicles', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, vehicleType: toVehicleTypeInt(data.vehicleType) }),
+  }),
+
+  me: () => request<DriverDto | null>('/drivers/me').catch(e => {
+    if (e instanceof Error && e.message.includes('404')) return null
+    throw e
+  }),
+
+  toggleOnline: (isOnline: boolean) =>
+    request<void>('/drivers/online', { method: 'PUT', body: JSON.stringify({ isOnline }) }),
+
+  updateLocation: (latitude: number, longitude: number) =>
+    request<void>('/drivers/location', { method: 'PUT', body: JSON.stringify({ latitude, longitude }) }),
+
+  trips: (page = 1, pageSize = 20) =>
+    request<TripDto[]>(`/drivers/trips?page=${page}&pageSize=${pageSize}`),
+}
+
+// ─── Trips (driver actions) ───────────────────────────────────────────────────
+
+export const driverTripsApi = {
+  updateStatus: (id: string, status: string) =>
+    request<TripDto>(`/trips/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+
+  complete: (id: string, actualDistanceKm: number) =>
+    request<TripDto>(`/trips/${id}/complete`, { method: 'POST', body: JSON.stringify({ actualDistanceKm }) }),
+
+  rate: (id: string, rating: number, comment?: string) =>
+    request<void>(`/trips/${id}/rate`, { method: 'POST', body: JSON.stringify({ rating, comment }) }),
+}
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+export const adminApi = {
+  stats: () => request<AdminStatsDto>('/admin/stats'),
+
+  users: (page = 1, pageSize = 20) =>
+    request<PagedResult<UserDto>>(`/admin/users?page=${page}&pageSize=${pageSize}`),
+
+  setUserStatus: (id: string, status: 'Active' | 'Suspended') =>
+    request<UserDto>(`/admin/users/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    }),
+
+  drivers: (page = 1, pageSize = 20, status?: string) => {
+    const q = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+    if (status) q.set('status', status)
+    return request<PagedResult<AdminDriverDto>>(`/admin/drivers?${q}`)
+  },
+
+  approveDriver: (id: string) =>
+    request<AdminDriverDto>(`/admin/drivers/${id}/approve`, { method: 'PUT' }),
+
+  rejectDriver: (id: string) =>
+    request<void>(`/admin/drivers/${id}/reject`, { method: 'PUT' }),
+
+  suspendDriver: (id: string) =>
+    request<void>(`/admin/drivers/${id}/suspend`, { method: 'PUT' }),
+
+  trips: (page = 1, pageSize = 20) =>
+    request<PagedResult<TripDto>>(`/admin/trips?page=${page}&pageSize=${pageSize}`),
+
+  pricing: () => request<PricingRuleDto[]>('/admin/pricing'),
+
+  updatePricing: (id: string, data: {
+    baseFare: number
+    perKmRate: number
+    perMinuteRate: number
+    minimumFare: number
+    surgeMultiplier: number
+  }) => request<PricingRuleDto>(`/admin/pricing/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────

@@ -29,6 +29,7 @@ public sealed class LoginCommandHandler(
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
     ICacheService cacheService,
+    IEmailService emailService,
     IAuditService auditService,
     IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, AuthTokensDto>
 {
@@ -57,6 +58,19 @@ public sealed class LoginCommandHandler(
 
         if (user.Status == Domain.Enums.UserStatus.Deleted)
             throw new UnauthorizedException();
+
+        if (!user.EmailVerified)
+        {
+            var rawToken = tokenService.GenerateSecureToken();
+            await cacheService.SetAsync(
+                $"email_verify:{user.Id}",
+                tokenService.HashToken(rawToken),
+                TimeSpan.FromMinutes(10),
+                ct);
+
+            _ = emailService.SendVerificationEmailAsync(user.Email, rawToken, user.Id, CancellationToken.None);
+            throw new ForbiddenException("EMAIL_NOT_VERIFIED: Vui lòng xác thực email trước khi đăng nhập. Chúng tôi đã gửi lại mã xác thực.");
+        }
 
         // DB lockout is the authoritative guard; Redis is a fast-path pre-filter
         if (user.Security.IsLockedOut())

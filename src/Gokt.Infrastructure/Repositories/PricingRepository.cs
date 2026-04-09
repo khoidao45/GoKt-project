@@ -13,4 +13,13 @@ public class PricingRepository(AppDbContext db) : IPricingRepository
 
     public async Task<IEnumerable<PricingRule>> GetAllActiveAsync(CancellationToken ct = default) =>
         await db.PricingRules.Where(p => p.IsActive).ToListAsync(ct);
+
+    public async Task<IEnumerable<PricingRule>> GetAllAsync(CancellationToken ct = default) =>
+        await db.PricingRules.OrderBy(p => p.VehicleType).ToListAsync(ct);
+
+    public Task UpdateAsync(PricingRule rule, CancellationToken ct = default)
+    {
+        db.PricingRules.Update(rule);
+        return Task.CompletedTask;
+    }
 }

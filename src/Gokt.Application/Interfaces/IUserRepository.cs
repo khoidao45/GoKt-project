@@ -13,4 +13,5 @@ public interface IUserRepository
     Task AddAsync(User user, CancellationToken ct = default);
     Task<IEnumerable<User>> GetAllAsync(int page, int pageSize, CancellationToken ct = default);
     Task<int> CountAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<User>> GetExpiredUnverifiedAsync(DateTime cutoffUtc, CancellationToken ct = default);
 }

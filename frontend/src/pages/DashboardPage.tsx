@@ -22,6 +22,12 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
   }
 }
 
+function getCurrentPosition(options?: PositionOptions): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options)
+  })
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function statusBadge(status: string) {
@@ -61,6 +67,8 @@ type Tab = 'overview' | 'request' | 'history' | 'notifications' | 'profile'
 
 interface Props { user: UserDto; onLogout: () => void }
 
+const LOCATION_REFRESH_MS = 3000
+
 // ─── Main Component ───────────────────────────────────────────────────────
 
 export default function DashboardPage({ user: initialUser, onLogout }: Props) {
@@ -84,6 +92,8 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
   const [mapMode, setMapMode] = useState<'pickup' | 'dropoff'>('pickup')
   const [vehicleType, setVehicleType] = useState('Seat4')
   const [gpsLoading, setGpsLoading] = useState(false)
+  const [currentPos, setCurrentPos] = useState<LatLng | null>(null)
+  const [locationError, setLocationError] = useState<string>('')
 
   // profile form
   const [profileForm, setProfileForm] = useState({
@@ -118,6 +128,50 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
   }), [run])
 
   useEffect(() => { loadOverview() }, [loadOverview])
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationError('Trình duyệt không hỗ trợ GPS')
+      return
+    }
+
+    let cancelled = false
+    let resolvingAddress = false
+
+    const updateLocation = async () => {
+      try {
+        const pos = await getCurrentPosition({ enableHighAccuracy: true, timeout: 8000, maximumAge: 1000 })
+        if (cancelled) return
+
+        const latLng = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        setCurrentPos(latLng)
+        setLocationError('')
+
+        // Keep pickup in sync with current location until user manually chooses a pickup.
+        if (!pickupPos) {
+          setPickupPos(latLng)
+          if (!resolvingAddress) {
+            resolvingAddress = true
+            reverseGeocode(latLng.lat, latLng.lng)
+              .then(addr => {
+                if (!cancelled) setPickupAddr(addr)
+              })
+              .finally(() => { resolvingAddress = false })
+          }
+        }
+      } catch {
+        if (!cancelled) setLocationError('Không thể cập nhật vị trí hiện tại')
+      }
+    }
+
+    updateLocation()
+    const timer = window.setInterval(updateLocation, LOCATION_REFRESH_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [pickupPos])
 
   const handleLogout = () => run(async () => {
     await auth.logout()
@@ -317,6 +371,32 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
                 </div>
               </div>
 
+              {/* Become a driver CTA */}
+              {!user.roles?.includes('DRIVER') && !user.roles?.includes('ADMIN') && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                  borderRadius: 'var(--radius-lg)', padding: '20px 24px', marginBottom: 20,
+                  border: '1px solid #334155',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+                }}>
+                  <div>
+                    <div style={{ color: '#10b981', fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                      🚗 Trở thành tài xế Gokt
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: 13 }}>
+                      Đăng ký, thêm xe và nhận cuốc ngay hôm nay
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => nav('/driver')}
+                    style={{ background: '#10b981', color: '#fff', flexShrink: 0, border: 'none' }}
+                  >
+                    Đăng ký ngay
+                  </button>
+                </div>
+              )}
+
               {/* Active ride */}
               {activeRide?.rideRequest || activeRide?.trip ? (
                 <div style={{ marginBottom: 20 }}>
@@ -449,7 +529,7 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
 
           {/* ── Request Tab ───────────────────────────────────────────── */}
           {tab === 'request' && (
-            <div style={{ maxWidth: 680 }}>
+            <div style={{ maxWidth: 980 }}>
               {/* Map picker */}
               <div className="card mb-4">
                 <div className="card-header">
@@ -464,6 +544,13 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
                   </button>
                 </div>
                 <div className="card-body">
+                  <div className="text-sm text-muted mb-3">
+                    {currentPos
+                      ? `Vị trí hiện tại: ${currentPos.lat.toFixed(5)}, ${currentPos.lng.toFixed(5)} (tự cập nhật mỗi 3 giây)`
+                      : 'Đang chờ vị trí hiện tại...'}
+                    {locationError ? ` • ${locationError}` : ''}
+                  </div>
+
                   {/* Mode toggle */}
                   <div className="flex gap-2 mb-3">
                     <button
@@ -484,6 +571,7 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
                     pickup={pickupPos}
                     dropoff={dropoffPos}
                     mode={mapMode}
+                    height={460}
                     onPickupChange={(pos, addr) => {
                       setPickupPos(pos)
                       setPickupAddr(addr)

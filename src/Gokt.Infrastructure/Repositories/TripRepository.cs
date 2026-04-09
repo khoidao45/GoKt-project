@@ -47,6 +47,16 @@ public class TripRepository(AppDbContext db) : ITripRepository
     public Task<Trip?> GetByRideRequestIdAsync(Guid rideRequestId, CancellationToken ct = default) =>
         WithIncludes().FirstOrDefaultAsync(t => t.RideRequestId == rideRequestId, ct);
 
+    public async Task<IEnumerable<Trip>> GetAllAsync(int page, int pageSize, CancellationToken ct = default) =>
+        await WithIncludes()
+            .OrderByDescending(t => t.AcceptedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+    public Task<int> CountAsync(CancellationToken ct = default) =>
+        db.Trips.CountAsync(ct);
+
     private static readonly TripStatus[] ActiveStatuses =
         [TripStatus.Accepted, TripStatus.DriverEnRoute, TripStatus.DriverArrived, TripStatus.InProgress];
 }

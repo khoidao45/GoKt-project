@@ -73,7 +73,16 @@ public class EmailService(IConfiguration configuration, ILogger<EmailService> lo
             var response = await client.SendEmailAsync(msg, ct);
 
             if (!response.IsSuccessStatusCode)
-                logger.LogWarning("SendGrid returned {Status} for {Email}", response.StatusCode, toEmail);
+            {
+                var details = await response.Body.ReadAsStringAsync(ct);
+                logger.LogWarning("SendGrid returned {Status} for {Email}. Details: {Details}",
+                    response.StatusCode, toEmail, details);
+            }
+            else
+            {
+                logger.LogInformation("SendGrid accepted email send for {Email} with status {Status}",
+                    toEmail, response.StatusCode);
+            }
         }
         catch (Exception ex)
         {

@@ -18,6 +18,7 @@ DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "..", ".env"));
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .Enrich.WithMachineName()
     .Enrich.WithThreadId()
@@ -161,6 +162,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("SignalR");
 app.UseAuthentication();
 app.UseMiddleware<JwtBlacklistMiddleware>();
+app.UseMiddleware<EmailVerificationGuardMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<RideHub>("/hubs/ride");

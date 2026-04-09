@@ -12,4 +12,7 @@ public interface IDriverRepository
     Task<bool> ExistsByUserIdAsync(Guid userId, CancellationToken ct = default);
     Task<bool> ExistsByLicenseAsync(string licenseNumber, CancellationToken ct = default);
     Task<Driver?> GetByDriverCodeAsync(string driverCode, CancellationToken ct = default);
+    Task<IEnumerable<Driver>> GetAllAsync(int page, int pageSize, DriverStatus? status = null, CancellationToken ct = default);
+    Task<int> CountAsync(DriverStatus? status = null, CancellationToken ct = default);
+    Task UpdateAsync(Driver driver, CancellationToken ct = default);
 }

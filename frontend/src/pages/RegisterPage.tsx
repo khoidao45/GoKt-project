@@ -49,9 +49,7 @@ export default function RegisterPage({ onLogin, googleEnabled = false }: Props) 
         lastName: form.lastName,
         phone: form.phone || undefined,
       })
-      setToken(res.accessToken)
-      onLogin(res.user, res.accessToken)
-      nav('/dashboard', { replace: true })
+      nav(`/verify-email?email=${encodeURIComponent(res.email)}&userId=${encodeURIComponent(res.userId)}`, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng ký thất bại')
     } finally {
@@ -67,7 +65,7 @@ export default function RegisterPage({ onLogin, googleEnabled = false }: Props) 
       const res = await auth.google(cr.credential)
       setToken(res.accessToken)
       onLogin(res.user, res.accessToken)
-      nav('/dashboard', { replace: true })
+      nav(res.user.roles?.includes('DRIVER') ? '/driver' : '/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập Google thất bại')
     } finally {

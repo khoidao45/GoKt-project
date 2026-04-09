@@ -1,5 +1,6 @@
 using Gokt.Application.Interfaces;
 using Gokt.Domain.Entities;
+using Gokt.Domain.Enums;
 using Gokt.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -53,4 +54,14 @@ public class UserRepository(AppDbContext db) : IUserRepository
 
     public async Task<int> CountAsync(CancellationToken ct = default) =>
         await db.Users.CountAsync(u => u.DeletedAt == null, ct);
+
+    public async Task<IReadOnlyList<User>> GetExpiredUnverifiedAsync(DateTime cutoffUtc, CancellationToken ct = default) =>
+        await db.Users
+            .Include(u => u.Profile)
+            .Include(u => u.Security)
+            .Where(u => u.DeletedAt == null
+                && !u.EmailVerified
+                && u.Status == UserStatus.PendingVerification
+                && u.CreatedAt <= cutoffUtc)
+            .ToListAsync(ct);
 }

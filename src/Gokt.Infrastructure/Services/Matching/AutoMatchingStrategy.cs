@@ -15,6 +15,8 @@ public class AutoMatchingStrategy(
 {
     public MatchingStrategyType StrategyType => MatchingStrategyType.Auto;
 
+    private static readonly TimeSpan MatchPollInterval = TimeSpan.FromSeconds(3);
+
     private static readonly (double RadiusKm, int MaxDrivers, int WaitSeconds)[] Waves =
     [
         (5,  5,  20),
@@ -93,22 +95,29 @@ public class AutoMatchingStrategy(
                 }
             }
 
-            // Wait for drivers to respond
-            await Task.Delay(waitSeconds * 1000, CancellationToken.None);
-
-            // Early exit: check if ride was accepted during the wait
-            var current = await rideRequestRepository.GetByIdAsync(context.RideRequestId, ct);
-            if (current is null) return new MatchResult(false, FailureReason: "Ride not found after wait");
-
-            if (current.Status == RideStatus.Accepted)
+            // Poll every 3s during the wave to catch user acceptance/cancellation quickly.
+            var elapsed = TimeSpan.Zero;
+            var waveDuration = TimeSpan.FromSeconds(waitSeconds);
+            while (elapsed < waveDuration)
             {
-                logger.LogInformation("Matching success: ride {RideId} accepted after wave {Wave}",
-                    context.RideRequestId, waveIndex + 1);
-                return new MatchResult(true);
-            }
+                var remaining = waveDuration - elapsed;
+                var delay = remaining < MatchPollInterval ? remaining : MatchPollInterval;
+                await Task.Delay(delay, CancellationToken.None);
+                elapsed += delay;
 
-            if (current.Status is RideStatus.Cancelled or RideStatus.Expired)
-                return new MatchResult(false, FailureReason: "Ride cancelled or expired during matching");
+                var current = await rideRequestRepository.GetByIdAsync(context.RideRequestId, ct);
+                if (current is null) return new MatchResult(false, FailureReason: "Ride not found after wait");
+
+                if (current.Status == RideStatus.Accepted)
+                {
+                    logger.LogInformation("Matching success: ride {RideId} accepted after wave {Wave}",
+                        context.RideRequestId, waveIndex + 1);
+                    return new MatchResult(true);
+                }
+
+                if (current.Status is RideStatus.Cancelled or RideStatus.Expired)
+                    return new MatchResult(false, FailureReason: "Ride cancelled or expired during matching");
+            }
         }
 
         // All waves exhausted

@@ -5,6 +5,7 @@ using Gokt.Application.Commands.Drivers.UpdateDriverLocation;
 using Gokt.Application.Commands.Trips.RateTrip;
 using Gokt.Application.DTOs;
 using Gokt.Application.Queries.GetDriverTripHistory;
+using Gokt.Application.Queries.GetMyDriverProfile;
 using Gokt.Application.Queries.GetNearbyDrivers;
 using Gokt.Domain.Enums;
 using MediatR;
@@ -56,6 +57,17 @@ public class DriversController(IMediator mediator) : ControllerBase
     {
         await mediator.Send(new UpdateDriverLocationCommand(CurrentUserId, req.Latitude, req.Longitude), ct);
         return NoContent();
+    }
+
+    // GET /api/v1/drivers/me
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(DriverDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> GetMe(CancellationToken ct)
+    {
+        var driver = await mediator.Send(new GetMyDriverProfileQuery(CurrentUserId), ct);
+        if (driver is null) return NotFound();
+        return Ok(driver);
     }
 
     // GET /api/v1/drivers/nearby?lat=...&lng=...&radius=5&vehicleType=Seat4

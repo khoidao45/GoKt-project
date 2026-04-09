@@ -25,9 +25,14 @@ export default function LoginPage({ onLogin, googleEnabled = false }: Props) {
       const res = await auth.login(email, password)
       setToken(res.accessToken)
       onLogin(res.user, res.accessToken)
-      nav('/dashboard', { replace: true })
+      nav(res.user.roles?.includes('DRIVER') ? '/driver' : '/dashboard', { replace: true })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập thất bại')
+      const msg = err instanceof Error ? err.message : 'Đăng nhập thất bại'
+      if (msg.includes('EMAIL_NOT_VERIFIED')) {
+        nav(`/verify-email?email=${encodeURIComponent(email)}`, { replace: true })
+        return
+      }
+      setError(msg)
     } finally {
       setBusy(false)
     }
@@ -41,7 +46,7 @@ export default function LoginPage({ onLogin, googleEnabled = false }: Props) {
       const res = await auth.google(credentialResponse.credential)
       setToken(res.accessToken)
       onLogin(res.user, res.accessToken)
-      nav('/dashboard', { replace: true })
+      nav(res.user.roles?.includes('DRIVER') ? '/driver' : '/dashboard', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập Google thất bại')
     } finally {

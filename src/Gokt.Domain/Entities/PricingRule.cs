@@ -29,4 +29,15 @@ public class PricingRule
             MinimumFare = minimumFare,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         };
+
+    public void Update(decimal baseFare, decimal perKmRate, decimal perMinuteRate, decimal minimumFare, decimal surgeMultiplier)
+    {
+        BaseFare = baseFare;
+        PerKmRate = perKmRate;
+        PerMinuteRate = perMinuteRate;
+        MinimumFare = minimumFare;
+        SurgeMultiplier = Math.Max(1.0m, surgeMultiplier);
+    }
+
+    public void SetActive(bool isActive) => IsActive = isActive;
 }
