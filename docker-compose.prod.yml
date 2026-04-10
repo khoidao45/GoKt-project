@@ -1,0 +1,110 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gokt}
+      POSTGRES_USER: ${POSTGRES_USER:-gokt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gokt}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gokt}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://${KAFKA_PUBLIC_HOST:-localhost}:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 24
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server kafka:29092"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    image: ${API_IMAGE}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=${POSTGRES_DB:-gokt};Username=${POSTGRES_USER:-gokt};Password=${POSTGRES_PASSWORD:-gokt}
+      ConnectionStrings__Redis: redis:6379
+      Kafka__BootstrapServers: kafka:29092
+      Jwt__Secret: ${JWT_SECRET}
+      Jwt__Issuer: ${JWT_ISSUER:-gokt-api}
+      Jwt__Audience: ${JWT_AUDIENCE:-gokt-clients}
+      Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      SendGrid__ApiKey: ${SendGrid__ApiKey:-}
+      SendGrid__FromEmail: ${SendGrid__FromEmail:-noreply@gokt.app}
+      SendGrid__FromName: ${SendGrid__FromName:-Gokt}
+      App__BaseUrl: ${APP_BASE_URL}
+    restart: unless-stopped
+
+  matching-worker:
+    image: ${WORKER_IMAGE}
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=${POSTGRES_DB:-gokt};Username=${POSTGRES_USER:-gokt};Password=${POSTGRES_PASSWORD:-gokt}
+      ConnectionStrings__Redis: redis:6379
+      Kafka__BootstrapServers: kafka:29092
+      Kafka__GroupId: gokt-matching-worker
+    deploy:
+      replicas: 2
+    restart: unless-stopped
+
+  frontend:
+    image: ${FRONTEND_IMAGE}
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:

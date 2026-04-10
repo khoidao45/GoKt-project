@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "AbZ7eOlS5AY=",
+  "dgSpecHash": "YVsjnOvV1T4=",
   "success": true,
-  "projectFilePath": "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\Gokt.csproj",
+  "projectFilePath": "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\Gokt.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\MINH KHOI\\.nuget\\packages\\confluent.kafka\\2.6.0\\confluent.kafka.2.6.0.nupkg.sha512",
     "C:\\Users\\MINH KHOI\\.nuget\\packages\\dotnetenv\\3.1.0\\dotnetenv.3.1.0.nupkg.sha512",

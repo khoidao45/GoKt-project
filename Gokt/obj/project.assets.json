@@ -9299,11 +9299,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\Gokt.csproj",
+      "projectUniqueName": "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\Gokt.csproj",
       "projectName": "Gokt",
-      "projectPath": "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\Gokt.csproj",
+      "projectPath": "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\Gokt.csproj",
       "packagesPath": "C:\\Users\\MINH KHOI\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\obj\\",
+      "outputPath": "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\Gokt\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -9324,14 +9324,14 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Application\\Gokt.Application.csproj": {
-              "projectPath": "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Application\\Gokt.Application.csproj"
+            "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Application\\Gokt.Application.csproj": {
+              "projectPath": "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Application\\Gokt.Application.csproj"
             },
-            "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Hubs\\Gokt.Hubs.csproj": {
-              "projectPath": "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Hubs\\Gokt.Hubs.csproj"
+            "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Hubs\\Gokt.Hubs.csproj": {
+              "projectPath": "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Hubs\\Gokt.Hubs.csproj"
             },
-            "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Infrastructure\\Gokt.Infrastructure.csproj": {
-              "projectPath": "c:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Infrastructure\\Gokt.Infrastructure.csproj"
+            "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Infrastructure\\Gokt.Infrastructure.csproj": {
+              "projectPath": "C:\\Users\\MINH KHOI\\source\\repos\\Gokt\\src\\Gokt.Infrastructure\\Gokt.Infrastructure.csproj"
             }
           }
         }

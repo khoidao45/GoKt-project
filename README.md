@@ -165,3 +165,9 @@ Built as a learning + production-grade system for mastering:
 Distributed systems
 Event-driven architecture
 Real-time backend design
+
+## CI/CD Deployment (Azure VM)
+
+For production deployment with Jenkins + Azure VM + Docker Compose, see:
+
+- `docs/deploy-azure-vm-jenkins.md`
