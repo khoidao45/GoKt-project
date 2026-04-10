@@ -16,7 +16,7 @@ pipeline {
     FRONTEND_IMAGE = "${env.ACR_LOGIN_SERVER}/gokt-frontend:${env.IMAGE_TAG}"
 
     DEPLOY_PATH = '/opt/gokt'
-    FRONTEND_API_BASE_URL = 'http://20.205.29.208:8080/api/v1'
+    FRONTEND_API_BASE_URL = 'https://gokt.minhkhoidao.id.vn/api/v1'
   }
 
   stages {
