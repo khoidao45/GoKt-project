@@ -63,16 +63,21 @@ pipeline {
 
     stage('Build + Push Docker Images') {
       steps {
+        withCredentials([
+          string(credentialsId: 'GOOGLE_CLIENT_ID', variable: 'GOOGLE_CLIENT_ID')
+        ]) {
         sh '''
           docker build -f Gokt/Dockerfile -t "$API_IMAGE" .
           docker build -f src/Gokt.MatchingWorker/Dockerfile -t "$WORKER_IMAGE" .
           docker build -f frontend/Dockerfile -t "$FRONTEND_IMAGE" \
-            --build-arg VITE_API_BASE_URL="$FRONTEND_API_BASE_URL" frontend
+            --build-arg VITE_API_BASE_URL="$FRONTEND_API_BASE_URL" \
+            --build-arg VITE_GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" frontend
 
           docker push "$API_IMAGE"
           docker push "$WORKER_IMAGE"
           docker push "$FRONTEND_IMAGE"
         '''
+        }
       }
     }
 
@@ -84,7 +89,8 @@ pipeline {
           string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET'),
           string(credentialsId: 'APP_BASE_URL', variable: 'APP_BASE_URL'),
           string(credentialsId: 'GOOGLE_CLIENT_ID', variable: 'GOOGLE_CLIENT_ID'),
-          string(credentialsId: 'GOOGLE_CLIENT_SECRET', variable: 'GOOGLE_CLIENT_SECRET')
+          string(credentialsId: 'GOOGLE_CLIENT_SECRET', variable: 'GOOGLE_CLIENT_SECRET'),
+          string(credentialsId: 'SendGrid__ApiKey', variable: 'SENDGRID_API_KEY')
         ]) {
           sh '''
             cat > .env.deploy <<EOF
@@ -98,6 +104,7 @@ POSTGRES_USER=gokt
 POSTGRES_PASSWORD=gokt
 GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
 GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+SendGrid__ApiKey=$SENDGRID_API_KEY
 EOF
 
             ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$VM_HOST" "mkdir -p $DEPLOY_PATH"
