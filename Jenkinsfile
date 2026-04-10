@@ -82,7 +82,9 @@ pipeline {
           sshUserPrivateKey(credentialsId: 'AZURE_VM_SSH_KEY', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER'),
           string(credentialsId: 'AZURE_VM_HOST', variable: 'VM_HOST'),
           string(credentialsId: 'JWT_SECRET', variable: 'JWT_SECRET'),
-          string(credentialsId: 'APP_BASE_URL', variable: 'APP_BASE_URL')
+          string(credentialsId: 'APP_BASE_URL', variable: 'APP_BASE_URL'),
+          string(credentialsId: 'GOOGLE_CLIENT_ID', variable: 'GOOGLE_CLIENT_ID'),
+          string(credentialsId: 'GOOGLE_CLIENT_SECRET', variable: 'GOOGLE_CLIENT_SECRET')
         ]) {
           sh '''
             cat > .env.deploy <<EOF
@@ -94,6 +96,8 @@ APP_BASE_URL=$APP_BASE_URL
 POSTGRES_DB=gokt
 POSTGRES_USER=gokt
 POSTGRES_PASSWORD=gokt
+GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
 EOF
 
             ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$VM_HOST" "mkdir -p $DEPLOY_PATH"

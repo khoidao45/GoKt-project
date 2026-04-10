@@ -74,6 +74,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-gokt-api}
       Jwt__Audience: ${JWT_AUDIENCE:-gokt-clients}
       Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
       SendGrid__ApiKey: ${SendGrid__ApiKey:-}
       SendGrid__FromEmail: ${SendGrid__FromEmail:-noreply@gokt.app}
       SendGrid__FromName: ${SendGrid__FromName:-Gokt}
