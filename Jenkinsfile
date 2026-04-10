@@ -100,7 +100,9 @@ EOF
             scp -i "$SSH_KEY" -o StrictHostKeyChecking=no docker-compose.prod.yml "$SSH_USER@$VM_HOST:$DEPLOY_PATH/docker-compose.prod.yml"
             scp -i "$SSH_KEY" -o StrictHostKeyChecking=no .env.deploy "$SSH_USER@$VM_HOST:$DEPLOY_PATH/.env"
 
-            ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$VM_HOST" "cd $DEPLOY_PATH && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans && docker image prune -f"
+            ACR_TOKEN=$(az acr login --name "$ACR_NAME" --expose-token --output tsv --query accessToken)
+            echo "$ACR_TOKEN" | ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SSH_USER@$VM_HOST" \
+              "docker login $ACR_LOGIN_SERVER -u 00000000-0000-0000-0000-000000000000 --password-stdin && cd $DEPLOY_PATH && docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d --remove-orphans && docker image prune -f"
 
             rm -f .env.deploy
           '''
