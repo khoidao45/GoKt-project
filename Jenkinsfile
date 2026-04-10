@@ -27,6 +27,9 @@ pipeline {
     }
 
     stage('Test .NET') {
+      environment {
+        DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = 'true'
+      }
       steps {
         sh 'dotnet test Gokt.sln --configuration Release --nologo'
       }
