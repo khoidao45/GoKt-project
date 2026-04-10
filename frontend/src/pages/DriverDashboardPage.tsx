@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as signalR from '@microsoft/signalr'
 import { auth, driversApi, driverTripsApi, notificationsApi, getToken } from '../api'
-import type { UserDto, TripDto, NotificationDto, RideOfferPayload, DriverDto, VehicleDto } from '../types'
+import TripChat from '../components/TripChat'
+import TripLiveMap from '../components/TripLiveMap'
+import type { UserDto, TripDto, NotificationDto, RideOfferPayload, DriverDto, VehicleDto, TripMessageDto, DriverDailyEarningsDto } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1'
 const HUB_URL = API_BASE.replace('/api/v1', '') + '/hubs/ride'
@@ -61,12 +63,44 @@ function btnStyle(bg: string): React.CSSProperties {
   }
 }
 
+function vehicleTypeBySeatCount(seatCount: number): VehicleUpdateDraft['vehicleType'] {
+  if (seatCount === 1) return 'ElectricBike'
+  if (seatCount === 4) return 'Seat4'
+  if (seatCount === 7) return 'Seat7'
+  return 'Seat9'
+}
+
+function seatCountByVehicleType(vehicleType: VehicleUpdateDraft['vehicleType']): number {
+  if (vehicleType === 'ElectricBike') return 1
+  if (vehicleType === 'Seat4') return 4
+  if (vehicleType === 'Seat7') return 7
+  return 9
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PageState = 'loading' | 'no-profile' | 'pending' | 'active'
 type Tab = 'overview' | 'current' | 'history' | 'notifications' | 'profile'
 type WizardStep = 1 | 2
-interface Props { user: UserDto; onLogout: () => void }
+interface Props { user: UserDto; onLogout: () => void; driverProfile?: DriverDto | null }
+
+type VehicleUpdateDraft = {
+  make: string
+  model: string
+  year: number
+  color: string
+  plateNumber: string
+  seatCount: number
+  imageUrl: string
+  vehicleType: 'ElectricBike' | 'Seat4' | 'Seat7' | 'Seat9'
+}
+
+function normalizeVehicleType(type: string): VehicleUpdateDraft['vehicleType'] {
+  if (type === 'ElectricBike' || type === 'Seat4' || type === 'Seat7' || type === 'Seat9') {
+    return type
+  }
+  return 'Seat4'
+}
 
 const LOCATION_REFRESH_MS = 3000
 
@@ -468,8 +502,9 @@ function PendingScreen({ user, profile, onLogout }: {
 
 // ─── State 3: Active Driver Dashboard (original code refactored) ──────────────
 
-function ActiveDashboard({ user, onLogout }: Props) {
+function ActiveDashboard({ user, onLogout, driverProfile }: Props) {
   const nav = useNavigate()
+  const [profile, setProfile] = useState<DriverDto | null>(driverProfile ?? null)
   const [tab, setTab] = useState<Tab>('overview')
   const [isOnline, setIsOnline] = useState(false)
   const [onlineLoading, setOnlineLoading] = useState(false)
@@ -483,6 +518,12 @@ function ActiveDashboard({ user, onLogout }: Props) {
   const [currentPos, setCurrentPos] = useState<{ lat: number; lng: number } | null>(null)
   const hubRef = useRef<signalR.HubConnection | null>(null)
   const lastGpsErrorAtRef = useRef(0)
+  const [hubConnected, setHubConnected] = useState(false)
+  const [distanceInput, setDistanceInput] = useState('')
+  const [chatMessages, setChatMessages] = useState<TripMessageDto[]>([])
+  const [customerPos, setCustomerPos] = useState<{ lat: number; lng: number } | null>(null)
+  const [dailyEarnings, setDailyEarnings] = useState<DriverDailyEarningsDto | null>(null)
+  const [vehicleDraftById, setVehicleDraftById] = useState<Record<string, VehicleUpdateDraft>>({})
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -497,9 +538,14 @@ function ActiveDashboard({ user, onLogout }: Props) {
   }, [])
 
   const loadData = useCallback(() => run(async () => {
-    const [history, ns] = await Promise.all([driversApi.trips(), notificationsApi.list()])
+    const [history, ns, earnings] = await Promise.all([
+      driversApi.trips(),
+      notificationsApi.list(),
+      driversApi.dailyEarnings(),
+    ])
     setTrips(history)
     setNotifs(ns)
+    setDailyEarnings(earnings)
     const active = history.find(t =>
       ['Accepted', 'DriverEnRoute', 'DriverArrived', 'InProgress'].includes(t.status)
     ) ?? null
@@ -510,6 +556,28 @@ function ActiveDashboard({ user, onLogout }: Props) {
   useEffect(() => { loadData() }, [loadData])
 
   useEffect(() => {
+    setProfile(driverProfile ?? null)
+  }, [driverProfile])
+
+  useEffect(() => {
+    if (!profile) return
+    const drafts: Record<string, VehicleUpdateDraft> = Object.fromEntries(
+      profile.vehicles.map(v => [v.id, {
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        color: v.color,
+        plateNumber: v.plateNumber,
+        seatCount: v.seatCount,
+        imageUrl: v.imageUrl ?? '',
+        vehicleType: normalizeVehicleType(v.vehicleType),
+      }]),
+    )
+    setVehicleDraftById(drafts)
+  }, [profile])
+
+  useEffect(() => {
+    let stopped = false
     const conn = new signalR.HubConnectionBuilder()
       .withUrl(HUB_URL, { accessTokenFactory: () => getToken() })
       .withAutomaticReconnect()
@@ -521,14 +589,30 @@ function ActiveDashboard({ user, onLogout }: Props) {
     conn.on('RideAccepted', (trip: TripDto) => {
       setActiveTrip(trip); setOffer(null); setTab('current'); showToast('Đã nhận cuốc thành công!')
     })
+    conn.on('ReceiveMessage', (msg: TripMessageDto) => {
+      if (!stopped) setChatMessages(prev => [...prev, msg])
+    })
+    conn.on('MessageSent', (msg: TripMessageDto) => {
+      if (!stopped) setChatMessages(prev => [...prev, msg])
+    })
+    conn.on('CustomerLocationUpdate', (p: { latitude: number; longitude: number }) => {
+      if (!stopped) setCustomerPos({ lat: p.latitude, lng: p.longitude })
+    })
     conn.on('Error', (msg: string) => showToast(msg, 'error'))
-    conn.onreconnecting(() => showToast('Mất kết nối realtime, đang thử kết nối lại...', 'error'))
-    conn.onreconnected(() => showToast('Đã kết nối lại realtime'))
-    conn.onclose(() => showToast('Kết nối realtime đã đóng', 'error'))
+    conn.onreconnecting(() => { setHubConnected(false); showToast('Mất kết nối realtime, đang thử kết nối lại...', 'error') })
+    conn.onreconnected(() => { setHubConnected(true); showToast('Đã kết nối lại realtime') })
+    conn.onclose(() => { if (!stopped) { setHubConnected(false); showToast('Kết nối realtime đã đóng', 'error') } })
 
-    conn.start().catch(() => showToast('Không thể kết nối realtime', 'error'))
     hubRef.current = conn
-    return () => { conn.stop() }
+    conn.start()
+      .then(() => { if (!stopped) setHubConnected(true) })
+      .catch(() => { if (!stopped) showToast('Không thể kết nối realtime', 'error') })
+
+    return () => {
+      stopped = true
+      setHubConnected(false)
+      conn.stop().catch(() => {})
+    }
   }, [])
 
   useEffect(() => {
@@ -571,6 +655,14 @@ function ActiveDashboard({ user, onLogout }: Props) {
     }
   }, [isOnline])
 
+  useEffect(() => {
+    if (!activeTrip) return
+    const fallback = activeTrip.estimatedDistanceKm ?? activeTrip.actualDistanceKm ?? null
+    if (fallback != null) {
+      setDistanceInput(String(fallback))
+    }
+  }, [activeTrip])
+
   const toggleOnline = async () => {
     setOnlineLoading(true)
     try {
@@ -605,8 +697,14 @@ function ActiveDashboard({ user, onLogout }: Props) {
 
   const completeTrip = () => run(async () => {
     if (!activeTrip) return
-    const updated = await driverTripsApi.complete(activeTrip.id, activeTrip.actualDistanceKm ?? 0)
+    const parsedDistance = Number.parseFloat(distanceInput)
+    if (!Number.isFinite(parsedDistance) || parsedDistance <= 0) {
+      throw new Error('Vui lòng nhập quãng đường thực tế hợp lệ (> 0 km)')
+    }
+
+    const updated = await driverTripsApi.complete(activeTrip.id, parsedDistance)
     setActiveTrip(updated)
+    setCustomerPos(null)
     setTrips(ts => ts.map(t => t.id === updated.id ? updated : t))
     showToast('Hoàn thành chuyến đi!')
     setTimeout(() => { setActiveTrip(null); setTab('overview') }, 1500)
@@ -621,6 +719,73 @@ function ActiveDashboard({ user, onLogout }: Props) {
   const unreadCount = notifs.filter(n => !n.isRead).length
   const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
 
+  const setVehicleDraftField = <K extends keyof VehicleUpdateDraft>(vehicleId: string, field: K, value: VehicleUpdateDraft[K]) => {
+    setVehicleDraftById(prev => ({
+      ...prev,
+      [vehicleId]: {
+        ...(prev[vehicleId] ?? {
+          make: '', model: '', year: new Date().getFullYear(), color: '',
+          plateNumber: '', seatCount: 4, imageUrl: '', vehicleType: 'Seat4' as const,
+        }),
+        [field]: value,
+      },
+    }))
+  }
+
+  const submitVehicleUpdateRequest = (vehicle: VehicleDto) => run(async () => {
+    const draft = vehicleDraftById[vehicle.id] ?? {
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      color: vehicle.color,
+      plateNumber: vehicle.plateNumber,
+      seatCount: vehicle.seatCount,
+      imageUrl: vehicle.imageUrl ?? '',
+      vehicleType: normalizeVehicleType(vehicle.vehicleType),
+    }
+
+    const seatCount = Number(draft.seatCount)
+    if (![1, 4, 7, 9].includes(seatCount)) {
+      throw new Error('Số chỗ chỉ được là 1, 4, 7 hoặc 9')
+    }
+    if (!draft.make.trim() || !draft.model.trim() || !draft.color.trim() || !draft.plateNumber.trim()) {
+      throw new Error('Vui lòng nhập đầy đủ hãng xe, dòng xe, màu xe và biển số')
+    }
+
+    const updated = await driversApi.requestVehicleUpdate(vehicle.id, {
+      make: draft.make.trim(),
+      model: draft.model.trim(),
+      year: Number(draft.year),
+      color: draft.color.trim(),
+      plateNumber: draft.plateNumber.trim().toUpperCase(),
+      seatCount,
+      imageUrl: draft.imageUrl.trim() || undefined,
+      vehicleType: vehicleTypeBySeatCount(seatCount),
+    })
+
+    setProfile(prev => {
+      if (!prev) return prev
+      return {
+        ...prev,
+        vehicles: prev.vehicles.map(v => (v.id === updated.id ? updated : v)),
+      }
+    })
+    setVehicleDraftById(prev => ({
+      ...prev,
+      [updated.id]: {
+        make: updated.make,
+        model: updated.model,
+        year: updated.year,
+        color: updated.color,
+        plateNumber: updated.plateNumber,
+        seatCount: updated.seatCount,
+        imageUrl: updated.imageUrl ?? '',
+        vehicleType: normalizeVehicleType(updated.vehicleType),
+      },
+    }))
+    showToast('Đã gửi yêu cầu cập nhật xe. Chờ admin duyệt.')
+  })
+
   const navItems: { key: Tab; icon: string; label: string; badge?: number }[] = [
     { key: 'overview',      icon: '🏠', label: 'Tổng quan' },
     { key: 'current',       icon: '🚗', label: 'Chuyến hiện tại', badge: activeTrip ? 1 : undefined },
@@ -634,6 +799,24 @@ function ActiveDashboard({ user, onLogout }: Props) {
       <Sidebar displayName={displayName} user={user} tab={tab} setTab={setTab} onLogout={handleLogout} navItems={navItems} />
 
       <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+        {/* Hub connection badge — top right corner */}
+        <div style={{ position: 'fixed', top: 16, right: 20, zIndex: 9998 }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: hubConnected ? '#064e3b' : '#1c1917',
+            border: `1px solid ${hubConnected ? '#10b981' : '#44403c'}`,
+            color: hubConnected ? '#10b981' : '#78716c',
+            padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%',
+              background: hubConnected ? '#10b981' : '#78716c',
+              boxShadow: hubConnected ? '0 0 6px #10b981' : 'none',
+            }} />
+            {hubConnected ? 'Realtime' : 'Mất kết nối'}
+          </span>
+        </div>
+
         {toast && (
           <div style={{
             position: 'fixed', top: 20, right: 20, zIndex: 9999,
@@ -740,6 +923,30 @@ function ActiveDashboard({ user, onLogout }: Props) {
               ))}
             </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+              <div style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155' }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>Doanh thu cuốc hôm nay</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#10b981' }}>{fmtCurrency(dailyEarnings?.tripRevenue ?? 0)}</div>
+                <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>Tiền từ các cuốc đã hoàn thành</div>
+              </div>
+
+              <div style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155' }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>KPI ngày</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#f59e0b' }}>{fmtCurrency(dailyEarnings?.kpiPayout ?? 0)}</div>
+                <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>
+                  {dailyEarnings?.isKpiFinalized
+                    ? `Đã chốt • hệ số ${(dailyEarnings.kpiRate * 100).toFixed(0)}%`
+                    : 'Chưa chốt KPI cho ngày này'}
+                </div>
+              </div>
+
+              <div style={{ background: '#1e293b', borderRadius: 12, padding: 20, border: '1px solid #334155' }}>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>Lợi nhuận ngày</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: '#38bdf8' }}>{fmtCurrency(dailyEarnings?.netProfit ?? 0)}</div>
+                <div style={{ marginTop: 6, fontSize: 12, color: '#94a3b8' }}>Doanh thu cuốc + KPI</div>
+              </div>
+            </div>
+
             {activeTrip && (
               <div style={{
                 background: 'rgba(16,185,129,0.1)', border: '1px solid #10b981',
@@ -791,6 +998,19 @@ function ActiveDashboard({ user, onLogout }: Props) {
                     <div style={{ fontSize: 24, fontWeight: 700, color: '#10b981' }}>{fmtCurrency(activeTrip.finalFare)}</div>
                   </div>
                 )}
+
+                {['Accepted', 'DriverEnRoute', 'DriverArrived', 'InProgress'].includes(activeTrip.status) && (
+                  <div style={{ marginBottom: 16 }}>
+                    <TripLiveMap
+                      riderPos={customerPos}
+                      driverPos={currentPos}
+                      pickupPos={{ lat: activeTrip.pickupLatitude, lng: activeTrip.pickupLongitude }}
+                      dropoffPos={{ lat: activeTrip.dropoffLatitude, lng: activeTrip.dropoffLongitude }}
+                      height={220}
+                    />
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {activeTrip.status === 'Accepted' && (
                     <button onClick={() => updateTripStatus('DriverEnRoute')} style={btnStyle('#3b82f6')}>Bắt đầu đến đón khách</button>
@@ -802,9 +1022,41 @@ function ActiveDashboard({ user, onLogout }: Props) {
                     <button onClick={() => updateTripStatus('InProgress')} style={btnStyle('#10b981')}>Bắt đầu chuyến đi</button>
                   )}
                   {activeTrip.status === 'InProgress' && (
-                    <button onClick={completeTrip} style={btnStyle('#10b981')}>Hoàn thành chuyến</button>
+                    <>
+                      <div style={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 10, padding: 12 }}>
+                        <label style={{ display: 'block', color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>Quãng đường thực tế (km)</label>
+                        <input
+                          type="number"
+                          min={0.1}
+                          step={0.1}
+                          value={distanceInput}
+                          onChange={e => setDistanceInput(e.target.value)}
+                          placeholder="VD: 12.5"
+                          style={{
+                            width: '100%', padding: '10px 12px', borderRadius: 8,
+                            border: '1px solid #334155', background: '#1e293b',
+                            color: '#f1f5f9', fontSize: 14,
+                          }}
+                        />
+                        <div style={{ marginTop: 6, fontSize: 11, color: '#64748b' }}>
+                          Nếu không chắc, bạn có thể dùng số km ước tính và chỉnh lại cho chính xác.
+                        </div>
+                      </div>
+                      <button onClick={completeTrip} style={btnStyle('#10b981')}>Hoàn thành chuyến</button>
+                    </>
                   )}
                 </div>
+
+                {['Accepted', 'DriverEnRoute', 'DriverArrived', 'InProgress'].includes(activeTrip.status) && (
+                  <div style={{ marginTop: 16 }}>
+                    <TripChat
+                      tripId={activeTrip.id}
+                      currentUserId={user.id}
+                      hubRef={hubRef}
+                      externalMessages={chatMessages}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -868,38 +1120,231 @@ function ActiveDashboard({ user, onLogout }: Props) {
 
         {/* Profile */}
         {tab === 'profile' && (
-          <div>
-            <h2 style={{ margin: '0 0 24px', color: '#f1f5f9' }}>Hồ sơ</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <h2 style={{ margin: 0, color: '#f1f5f9' }}>Hồ sơ</h2>
+
+            {/* User card */}
             <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #334155' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
                 <div style={{
-                  width: 60, height: 60, borderRadius: '50%',
+                  width: 64, height: 64, borderRadius: '50%',
                   background: 'linear-gradient(135deg, #10b981, #059669)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 24, fontWeight: 700, color: '#fff',
+                  fontSize: 26, fontWeight: 700, color: '#fff', flexShrink: 0,
                 }}>{displayName[0]?.toUpperCase()}</div>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{displayName}</div>
-                  <div style={{ fontSize: 13, color: '#64748b' }}>{user.email}</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9' }}>{displayName}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{user.email}</div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    {user.roles?.map(r => (
+                      <span key={r} style={{
+                        background: r === 'DRIVER' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.15)',
+                        color: r === 'DRIVER' ? '#10b981' : '#818cf8',
+                        border: `1px solid ${r === 'DRIVER' ? '#10b981' : '#818cf8'}`,
+                        padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                      }}>{r}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gap: 12 }}>
-                {[
-                  { label: 'Email', value: user.email },
-                  { label: 'Số điện thoại', value: user.phone ?? '—' },
-                  { label: 'Xác thực email', value: user.emailVerified ? 'Đã xác thực' : 'Chưa xác thực' },
-                  { label: 'Vai trò', value: user.roles?.join(', ') || 'DRIVER' },
-                ].map(row => (
-                  <div key={row.label} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '12px 0', borderBottom: '1px solid #334155',
-                  }}>
-                    <span style={{ color: '#64748b', fontSize: 14 }}>{row.label}</span>
-                    <span style={{ color: '#f1f5f9', fontSize: 14, fontWeight: 500 }}>{row.value}</span>
-                  </div>
-                ))}
-              </div>
+              {[
+                { label: 'Email', value: user.email },
+                { label: 'Số điện thoại', value: user.phone ?? '—' },
+                { label: 'Xác thực email', value: user.emailVerified ? 'Đã xác thực' : 'Chưa xác thực' },
+              ].map(row => (
+                <div key={row.label} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: '11px 0', borderBottom: '1px solid #0f172a',
+                }}>
+                  <span style={{ color: '#64748b', fontSize: 14 }}>{row.label}</span>
+                  <span style={{ color: '#f1f5f9', fontSize: 14, fontWeight: 500 }}>{row.value}</span>
+                </div>
+              ))}
             </div>
+
+            {/* Driver info */}
+            {profile && (
+              <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #334155' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981', letterSpacing: 1, marginBottom: 16 }}>THÔNG TIN TÀI XẾ</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  {[
+                    { label: 'Mã tài xế', value: profile.driverCode ?? '—' },
+                    { label: 'Trạng thái', value: profile.status === 'Active' ? 'Đang hoạt động' : profile.status === 'Pending' ? 'Chờ duyệt' : 'Tạm ngưng' },
+                    { label: 'Đánh giá', value: profile.rating > 0 ? `${profile.rating.toFixed(1)} ⭐` : 'Chưa có' },
+                    { label: 'Tổng chuyến', value: String(profile.totalRides) },
+                    { label: 'Số bằng lái', value: profile.licenseNumber ?? '—' },
+                    { label: 'Hạn bằng lái', value: profile.licenseExpiry ? new Date(profile.licenseExpiry).toLocaleDateString('vi-VN') : '—' },
+                  ].map(row => (
+                    <div key={row.label} style={{
+                      background: '#0f172a', borderRadius: 10, padding: '12px 16px',
+                    }}>
+                      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>{row.label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>{row.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Vehicles */}
+            {profile && profile.vehicles.length > 0 && (
+              <div style={{ background: '#1e293b', borderRadius: 16, padding: 24, border: '1px solid #334155' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#10b981', letterSpacing: 1, marginBottom: 16 }}>
+                  XE ({profile.vehicles.length})
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {profile.vehicles.map((v: VehicleDto) => (
+                    (() => {
+                      const draft = vehicleDraftById[v.id] ?? {
+                        make: v.make,
+                        model: v.model,
+                        year: v.year,
+                        color: v.color,
+                        plateNumber: v.plateNumber,
+                        seatCount: v.seatCount,
+                        imageUrl: v.imageUrl ?? '',
+                        vehicleType: normalizeVehicleType(v.vehicleType),
+                      }
+
+                      return (
+                    <div key={v.id} style={{
+                      background: '#0f172a', borderRadius: 12, padding: 16,
+                      border: `1px solid ${v.isActive ? '#10b981' : '#334155'}`,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                        <div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>
+                            {v.make} {v.model}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{v.year} · {v.color}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <span style={{
+                            background: 'rgba(99,102,241,0.15)', color: '#818cf8',
+                            border: '1px solid #818cf8', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                          }}>{v.vehicleType === 'ElectricBike' ? 'Xe điện' : `${v.seatCount} chỗ`}</span>
+                          {v.isActive && (
+                            <span style={{
+                              background: 'rgba(16,185,129,0.15)', color: '#10b981',
+                              border: '1px solid #10b981', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                            }}>Đang dùng</span>
+                          )}
+                          {v.isVerified && (
+                            <span style={{
+                              background: 'rgba(245,158,11,0.15)', color: '#f59e0b',
+                              border: '1px solid #f59e0b', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                            }}>Đã xác minh</span>
+                          )}
+                          {!v.isVerified && (
+                            <span style={{
+                              background: 'rgba(245,158,11,0.15)', color: '#f59e0b',
+                              border: '1px solid #f59e0b', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                            }}>Chờ admin duyệt</span>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        {[
+                          { label: 'Biển số', value: v.plateNumber },
+                          { label: 'Số chỗ', value: `${v.seatCount} chỗ` },
+                        ].map(r => (
+                          <div key={r.label} style={{ background: '#1e293b', borderRadius: 8, padding: '8px 12px' }}>
+                            <div style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>{r.label}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0' }}>{r.value}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={{ marginTop: 12, background: '#1e293b', borderRadius: 10, padding: 12, border: '1px solid #334155' }}>
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>Cập nhật thông tin xe (gửi admin duyệt)</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <input
+                            value={draft.make}
+                            onChange={e => setVehicleDraftField(v.id, 'make', e.target.value)}
+                            placeholder="Hãng xe"
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          />
+                          <input
+                            value={draft.model}
+                            onChange={e => setVehicleDraftField(v.id, 'model', e.target.value)}
+                            placeholder="Dòng xe"
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          />
+                          <input
+                            value={draft.year}
+                            onChange={e => setVehicleDraftField(v.id, 'year', Number(e.target.value) || draft.year)}
+                            type="number"
+                            min={2000}
+                            max={2100}
+                            placeholder="Năm sản xuất"
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          />
+                          <input
+                            value={draft.color}
+                            onChange={e => setVehicleDraftField(v.id, 'color', e.target.value)}
+                            placeholder="Màu xe"
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          />
+                          <input
+                            value={draft.plateNumber}
+                            onChange={e => setVehicleDraftField(v.id, 'plateNumber', e.target.value.toUpperCase())}
+                            placeholder="Biển số"
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          />
+                          <select
+                            value={draft.seatCount}
+                            onChange={e => {
+                              const seatCount = Number(e.target.value)
+                              setVehicleDraftField(v.id, 'seatCount', seatCount)
+                              setVehicleDraftField(v.id, 'vehicleType', vehicleTypeBySeatCount(seatCount))
+                            }}
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          >
+                            <option value={1}>1 chỗ</option>
+                            <option value={4}>4 chỗ</option>
+                            <option value={7}>7 chỗ</option>
+                            <option value={9}>9 chỗ</option>
+                          </select>
+                          <select
+                            value={draft.vehicleType}
+                            onChange={e => {
+                              const vehicleType = e.target.value as VehicleUpdateDraft['vehicleType']
+                              setVehicleDraftField(v.id, 'vehicleType', vehicleType)
+                              setVehicleDraftField(v.id, 'seatCount', seatCountByVehicleType(vehicleType))
+                            }}
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          >
+                            <option value="ElectricBike">Xe điện</option>
+                            <option value="Seat4">4 chỗ</option>
+                            <option value="Seat7">7 chỗ</option>
+                            <option value="Seat9">9 chỗ</option>
+                          </select>
+                          <input
+                            value={draft.imageUrl}
+                            onChange={e => setVehicleDraftField(v.id, 'imageUrl', e.target.value)}
+                            placeholder="Link ảnh xe (tuỳ chọn)"
+                            style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #334155', background: '#0f172a', color: '#e2e8f0' }}
+                          />
+                        </div>
+                        <div style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={() => submitVehicleUpdateRequest(v)}
+                            style={{ ...btnStyle('#3b82f6'), width: 'auto', padding: '8px 14px', fontSize: 13 }}
+                          >
+                            Gửi yêu cầu cập nhật xe
+                          </button>
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: 11, color: '#64748b' }}>
+                          Sau khi gửi, xe sẽ chuyển sang trạng thái chờ admin duyệt lại.
+                        </div>
+                      </div>
+                    </div>
+                      )
+                    })()
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -955,5 +1400,5 @@ export default function DriverDashboardPage({ user, onLogout }: Props) {
     return <PendingScreen user={user} profile={driverProfile!} onLogout={handleLogout} />
   }
 
-  return <ActiveDashboard user={user} onLogout={onLogout} />
+  return <ActiveDashboard user={user} onLogout={onLogout} driverProfile={driverProfile} />
 }

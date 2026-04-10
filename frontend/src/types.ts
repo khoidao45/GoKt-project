@@ -51,7 +51,12 @@ export interface TripDto {
   vehicleId: string
   status: string
   pickupAddress: string
+  pickupLatitude: number
+  pickupLongitude: number
   dropoffAddress: string
+  dropoffLatitude: number
+  dropoffLongitude: number
+  estimatedDistanceKm?: number | null
   finalFare?: number | null
   actualDistanceKm?: number | null
   actualDurationMinutes?: number | null
@@ -70,6 +75,15 @@ export interface TripDto {
   vehiclePlateNumber?: string | null
   vehicleSeatCount?: number | null
   vehicleImageUrl?: string | null
+}
+
+export interface TripMessageDto {
+  id: string
+  tripId: string
+  senderId: string
+  senderRole: 'Driver' | 'Rider'
+  body: string
+  sentAt: string
 }
 
 export interface NotificationDto {
@@ -93,19 +107,29 @@ export interface PriceEstimateDto {
   currency: string
 }
 
+export interface DriverDailyEarningsDto {
+  date: string
+  tripRevenue: number
+  kpiPayout: number
+  kpiQualified: boolean
+  kpiRate: number
+  netProfit: number
+  isKpiFinalized: boolean
+}
+
 export interface DriverDto {
   id: string
   userId: string
   fullName: string
   avatarUrl?: string | null
-  licenseNumber?: string
-  licenseExpiry?: string
+  licenseNumber?: string | null
+  licenseExpiry?: string | null
+  driverCode?: string | null
   status: 'Pending' | 'Active' | 'Suspended'
   rating: number
   totalRides: number
   isOnline: boolean
-  isBusy?: boolean
-  driverCode?: string | null
+  isBusy: boolean
   latitude?: number | null
   longitude?: number | null
   vehicles: VehicleDto[]
@@ -124,6 +148,7 @@ export interface VehicleDto {
   vehicleType: string
   isActive: boolean
   isVerified: boolean
+  verifiedAt?: string | null
 }
 
 export interface RideOfferPayload {
@@ -171,6 +196,9 @@ export interface AdminDriverDto {
   rating: number
   totalRides: number
   isOnline: boolean
+  isBusy: boolean
+  latitude?: number | null
+  longitude?: number | null
   vehicles: VehicleDto[]
   createdAt: string
 }

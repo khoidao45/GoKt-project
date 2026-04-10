@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminApi, auth } from '../api'
+import AdminDriversLiveMap from '../components/AdminDriversLiveMap'
 import type {
   AdminStatsDto, AdminDriverDto, PricingRuleDto, UserDto, TripDto,
 } from '../types'
@@ -65,7 +66,7 @@ const VEHICLE_LABELS: Record<string, string> = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'applications' | 'drivers' | 'users' | 'pricing' | 'trips'
+type Tab = 'overview' | 'applications' | 'drivers' | 'map' | 'users' | 'pricing' | 'trips'
 
 interface Props { user: UserDto; onLogout: () => void }
 
@@ -151,6 +152,7 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
   const [appTotal, setAppTotal] = useState(0)
   const [drivers, setDrivers] = useState<AdminDriverDto[]>([])
   const [driversTotal, setDriversTotal] = useState(0)
+  const [mapDrivers, setMapDrivers] = useState<AdminDriverDto[]>([])
   const [users, setUsers] = useState<UserDto[]>([])
   const [usersTotal, setUsersTotal] = useState(0)
   const [pricing, setPricing] = useState<PricingRuleDto[]>([])
@@ -188,6 +190,9 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
         const res = await adminApi.drivers(p, PAGE_SIZE)
         setDrivers(res.items)
         setDriversTotal(res.total)
+      } else if (t === 'map') {
+        const res = await adminApi.drivers(1, 500, 'Active')
+        setMapDrivers(res.items)
       } else if (t === 'users') {
         const res = await adminApi.users(p, PAGE_SIZE)
         setUsers(res.items)
@@ -215,6 +220,14 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
   useEffect(() => {
     if (page > 1) loadTab(tab, page)
   }, [page, tab, loadTab])
+
+  useEffect(() => {
+    if (tab !== 'map') return
+    const timer = window.setInterval(() => {
+      loadTab('map', 1)
+    }, 10000)
+    return () => window.clearInterval(timer)
+  }, [tab, loadTab])
 
   // Initial stats load
   useEffect(() => { loadStats() }, [loadStats])
@@ -253,6 +266,16 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
     }
   }
 
+  const handleApproveVehicle = async (vehicleId: string) => {
+    try {
+      await adminApi.approveVehicle(vehicleId)
+      showToast('Đã duyệt cập nhật xe')
+      loadTab('drivers', page)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Lỗi duyệt xe', 'error')
+    }
+  }
+
   const handleSetUserStatus = async (id: string, current: string) => {
     const next = current === 'Active' ? 'Suspended' : 'Active'
     const label = next === 'Active' ? 'kích hoạt' : 'tạm khoá'
@@ -285,6 +308,7 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
     { id: 'overview',     icon: '📊', label: 'Tổng quan' },
     { id: 'applications', icon: '📋', label: 'Đơn xin duyệt', badge: stats?.pendingDrivers },
     { id: 'drivers',      icon: '🚗', label: 'Tài xế' },
+    { id: 'map',          icon: '🛰️', label: 'Bản đồ tài xế' },
     { id: 'users',        icon: '👥', label: 'Người dùng' },
     { id: 'pricing',      icon: '💰', label: 'Bảng giá' },
     { id: 'trips',        icon: '🗺️', label: 'Chuyến đi' },
@@ -511,6 +535,7 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
                         <th style={th}>Đánh giá</th>
                         <th style={th}>Chuyến</th>
                         <th style={th}>Online</th>
+                        <th style={th}>Xe chờ duyệt</th>
                         <th style={th}>Hành động</th>
                       </tr>
                     </thead>
@@ -535,6 +560,22 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
                             <span className={`badge ${d.isOnline ? 'badge-success' : 'badge-neutral'}`}>
                               {d.isOnline ? 'Online' : 'Offline'}
                             </span>
+                          </td>
+                          <td style={td}>
+                            {d.vehicles.filter(v => !v.isVerified).length === 0 ? (
+                              <span style={{ color: 'var(--muted)', fontSize: 12 }}>Không có</span>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {d.vehicles.filter(v => !v.isVerified).map(v => (
+                                  <div key={v.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                    <span style={{ fontSize: 12, color: '#b45309' }}>{v.make} {v.model}</span>
+                                    <button className="btn btn-primary btn-sm" onClick={() => handleApproveVehicle(v.id)}>
+                                      Duyệt xe
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td style={td}>
                             {d.status === 'Active' && (
@@ -565,6 +606,33 @@ export default function AdminDashboardPage({ user, onLogout }: Props) {
               {driversTotal > PAGE_SIZE && (
                 <div className="card-footer"><Pagination /></div>
               )}
+            </div>
+          )}
+
+          {/* ── Users ── */}
+          {tab === 'map' && (
+            <div className="card">
+              <div className="card-header" style={{ paddingBottom: 16 }}>
+                <span className="card-title">Bản đồ tài xế đang hoạt động</span>
+                <span className="badge badge-info">{mapDrivers.filter(d => d.isOnline).length} online</span>
+              </div>
+              <div className="card-body" style={{ display: 'grid', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, color: 'var(--muted)' }}>
+                  <span><strong style={{ color: '#10b981' }}>●</strong> Rảnh</span>
+                  <span><strong style={{ color: '#f59e0b' }}>●</strong> Đang bận</span>
+                  <span>Cập nhật tự động mỗi 10 giây</span>
+                </div>
+
+                {mapDrivers.filter(d => d.latitude != null && d.longitude != null).length === 0 && !loading ? (
+                  <div className="empty-state">
+                    <div className="empty-icon">📡</div>
+                    <div className="empty-title">Chưa có dữ liệu vị trí tài xế</div>
+                    <div className="empty-desc">Tài xế cần online và gửi GPS để hiển thị trên bản đồ.</div>
+                  </div>
+                ) : (
+                  <AdminDriversLiveMap drivers={mapDrivers.filter(d => d.isOnline)} />
+                )}
+              </div>
             </div>
           )}
 

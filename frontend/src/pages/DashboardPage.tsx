@@ -1,11 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { auth, rides, tripsApi, notificationsApi, users } from '../api'
+import * as signalR from '@microsoft/signalr'
+import { auth, rides, tripsApi, notificationsApi, users, getToken } from '../api'
 import MapPicker from '../components/MapPicker'
+import TripChat from '../components/TripChat'
+import TripLiveMap from '../components/TripLiveMap'
 import type { LatLng } from '../components/MapPicker'
 import type {
-  UserDto, ActiveRideDto, TripDto, NotificationDto, PriceEstimateDto,
+  UserDto, ActiveRideDto, TripDto, NotificationDto, PriceEstimateDto, TripMessageDto,
 } from '../types'
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api/v1'
+const HUB_URL = API_BASE.replace('/api/v1', '') + '/hubs/ride'
 
 // ─── Geocoding ────────────────────────────────────────────────────────────
 
@@ -84,6 +90,11 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
+  // SignalR
+  const hubRef = useRef<signalR.HubConnection | null>(null)
+  const [chatMessages, setChatMessages] = useState<TripMessageDto[]>([])
+  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null)
+
   // ride form
   const [pickupPos, setPickupPos] = useState<LatLng | null>(null)
   const [pickupAddr, setPickupAddr] = useState('')
@@ -129,6 +140,48 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
 
   useEffect(() => { loadOverview() }, [loadOverview])
 
+  // ── SignalR — real-time ride events ───────────────────────────────────────
+  useEffect(() => {
+    let stopped = false
+    const conn = new signalR.HubConnectionBuilder()
+      .withUrl(HUB_URL, { accessTokenFactory: () => getToken() })
+      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
+      .build()
+
+    conn.on('DriverFound', () => {
+      // Refresh active ride to get the trip + driver info
+      rides.active().then(r => { if (!stopped) setActiveRide(r) }).catch(() => {})
+    })
+    conn.on('DriverLocationUpdate', (p: { latitude: number; longitude: number }) => {
+      if (!stopped) setDriverLocation({ lat: p.latitude, lng: p.longitude })
+    })
+    conn.on('NoDriverFound', () => {
+      if (!stopped) {
+        showToast('Không tìm được tài xế. Vui lòng thử lại.', 'error')
+        setActiveRide(null)
+      }
+    })
+    conn.on('RideCancelled', (payload: { rideRequestId: string; reason: string }) => {
+      if (!stopped) {
+        showToast(`Chuyến bị huỷ: ${payload.reason}`, 'error')
+        setActiveRide(null)
+      }
+    })
+    conn.on('ReceiveMessage', (msg: TripMessageDto) => {
+      if (!stopped) setChatMessages(prev => [...prev, msg])
+    })
+
+    hubRef.current = conn
+    conn.start()
+      .catch(() => { if (!stopped) console.warn('Rider SignalR failed to connect') })
+
+    return () => {
+      stopped = true
+      conn.stop().catch(() => {})
+    }
+  }, [])
+
   useEffect(() => {
     if (!navigator.geolocation) {
       setLocationError('Trình duyệt không hỗ trợ GPS')
@@ -172,6 +225,32 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
       window.clearInterval(timer)
     }
   }, [pickupPos])
+
+  const activeTrip = activeRide?.trip
+
+  useEffect(() => {
+    if (!hubRef.current || !activeTrip || !currentPos) return
+
+    const shareableStatuses = ['Accepted', 'DriverEnRoute', 'DriverArrived', 'InProgress']
+    if (!shareableStatuses.includes(activeTrip.status)) return
+
+    let stopped = false
+    const send = async () => {
+      if (stopped || !hubRef.current) return
+      try {
+        await hubRef.current.invoke('SendCustomerLocation', currentPos.lat, currentPos.lng)
+      } catch {
+        // Ignore transient hub failures; reconnect logic handles retries.
+      }
+    }
+
+    send()
+    const timer = window.setInterval(send, 3000)
+    return () => {
+      stopped = true
+      window.clearInterval(timer)
+    }
+  }, [activeTrip, currentPos])
 
   const handleLogout = () => run(async () => {
     await auth.logout()
@@ -459,7 +538,7 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
                           style={{ width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 10, marginBottom: 12 }}
                         />
                       )}
-                      <div className="ride-route">
+                      <div className="ride-route" style={{ marginBottom: 12 }}>
                         <div className="route-point">
                           <div className="route-dot pickup" />
                           {activeRide.trip.pickupAddress}
@@ -469,6 +548,32 @@ export default function DashboardPage({ user: initialUser, onLogout }: Props) {
                           {activeRide.trip.dropoffAddress}
                         </div>
                       </div>
+                      {/* Driver location badge */}
+                      {driverLocation && (
+                        <div style={{ fontSize: 12, color: '#6366f1', marginBottom: 10 }}>
+                          📍 Tài xế: {driverLocation.lat.toFixed(5)}, {driverLocation.lng.toFixed(5)}
+                        </div>
+                      )}
+                      {['Accepted', 'DriverEnRoute', 'DriverArrived', 'InProgress'].includes(activeRide.trip.status) && (
+                        <div style={{ marginBottom: 12 }}>
+                          <TripLiveMap
+                            riderPos={currentPos}
+                            driverPos={driverLocation}
+                            pickupPos={{ lat: activeRide.trip.pickupLatitude, lng: activeRide.trip.pickupLongitude }}
+                            dropoffPos={{ lat: activeRide.trip.dropoffLatitude, lng: activeRide.trip.dropoffLongitude }}
+                            height={240}
+                          />
+                        </div>
+                      )}
+                      {/* In-trip chat */}
+                      {['Accepted','DriverEnRoute','DriverArrived','InProgress'].includes(activeRide.trip.status) && (
+                        <TripChat
+                          tripId={activeRide.trip.id}
+                          currentUserId={user.id}
+                          hubRef={hubRef}
+                          externalMessages={chatMessages}
+                        />
+                      )}
                     </div>
                   )}
                 </div>

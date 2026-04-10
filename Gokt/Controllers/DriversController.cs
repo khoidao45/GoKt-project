@@ -1,9 +1,11 @@
 using Gokt.Application.Commands.Drivers.AddVehicle;
 using Gokt.Application.Commands.Drivers.RegisterDriver;
+using Gokt.Application.Commands.Drivers.RequestVehicleUpdate;
 using Gokt.Application.Commands.Drivers.ToggleDriverOnline;
 using Gokt.Application.Commands.Drivers.UpdateDriverLocation;
 using Gokt.Application.Commands.Trips.RateTrip;
 using Gokt.Application.DTOs;
+using Gokt.Application.Queries.GetDriverDailyEarnings;
 using Gokt.Application.Queries.GetDriverTripHistory;
 using Gokt.Application.Queries.GetMyDriverProfile;
 using Gokt.Application.Queries.GetNearbyDrivers;
@@ -39,6 +41,25 @@ public class DriversController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new AddVehicleCommand(
             CurrentUserId, req.Make, req.Model, req.Year, req.Color, req.PlateNumber, req.SeatCount, req.ImageUrl, req.VehicleType), ct);
         return StatusCode(201, result);
+    }
+
+    // PUT /api/v1/drivers/vehicles/{id}/request-update
+    [HttpPut("vehicles/{id:guid}/request-update")]
+    [ProducesResponseType(typeof(VehicleDto), 200)]
+    public async Task<IActionResult> RequestVehicleUpdate(Guid id, [FromBody] RequestVehicleUpdateRequest req, CancellationToken ct)
+    {
+        var result = await mediator.Send(new RequestVehicleUpdateCommand(
+            CurrentUserId,
+            id,
+            req.Make,
+            req.Model,
+            req.Year,
+            req.Color,
+            req.PlateNumber,
+            req.SeatCount,
+            req.ImageUrl,
+            req.VehicleType), ct);
+        return Ok(result);
     }
 
     // PUT /api/v1/drivers/online
@@ -93,6 +114,15 @@ public class DriversController(IMediator mediator) : ControllerBase
         return Ok(result);
     }
 
+    // GET /api/v1/drivers/earnings/today
+    [HttpGet("earnings/today")]
+    [ProducesResponseType(typeof(DriverDailyEarningsDto), 200)]
+    public async Task<IActionResult> GetTodayEarnings(CancellationToken ct = default)
+    {
+        var result = await mediator.Send(new GetDriverDailyEarningsQuery(CurrentUserId), ct);
+        return Ok(result);
+    }
+
     private Guid CurrentUserId =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new UnauthorizedAccessException("User ID claim not found."));
@@ -100,5 +130,6 @@ public class DriversController(IMediator mediator) : ControllerBase
 
 public record RegisterDriverRequest(string LicenseNumber, DateTime LicenseExpiry);
 public record AddVehicleRequest(string Make, string Model, int Year, string Color, string PlateNumber, int SeatCount, string? ImageUrl, VehicleType VehicleType);
+public record RequestVehicleUpdateRequest(string Make, string Model, int Year, string Color, string PlateNumber, int SeatCount, string? ImageUrl, VehicleType VehicleType);
 public record ToggleOnlineRequest(bool IsOnline);
 public record UpdateLocationRequest(double Latitude, double Longitude);

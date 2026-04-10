@@ -60,7 +60,7 @@ public sealed class CancelRideRequestCommandHandler(
         {
             await realtimeService.NotifyRideCancelledAsync(
                 rideRequest.CustomerId, rideRequest.Id, cmd.Reason ?? "Driver cancelled", ct);
-            _ = notificationService.SendAsync(rideRequest.CustomerId,
+            await notificationService.SendAsync(rideRequest.CustomerId,
                 "Ride Cancelled", "Your driver has cancelled the ride.",
                 NotificationType.Cancelled, null, ct);
         }
@@ -68,7 +68,7 @@ public sealed class CancelRideRequestCommandHandler(
         {
             await realtimeService.NotifyRideCancelledAsync(
                 activeTrip.DriverId, rideRequest.Id, cmd.Reason ?? "Customer cancelled", ct);
-            _ = notificationService.SendAsync(activeTrip.DriverId,
+            await notificationService.SendAsync(activeTrip.DriverId,
                 "Ride Cancelled", "The customer has cancelled the ride.",
                 NotificationType.Cancelled, null, ct);
         }

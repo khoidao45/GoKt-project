@@ -40,13 +40,20 @@ public class UnverifiedUserCleanupWorker(
         var uow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
         var cutoff = DateTime.UtcNow - UnverifiedTtl;
-        var expired = await userRepo.GetExpiredUnverifiedAsync(cutoff, ct);
-        if (expired.Count == 0) return;
-
-        foreach (var user in expired)
+        var expiredPending = await userRepo.GetExpiredUnverifiedAsync(cutoff, ct);
+        foreach (var user in expiredPending)
             user.SoftDelete();
 
+        var purgeableDeleted = await userRepo.GetExpiredDeletedUnverifiedAsync(cutoff, ct);
+        if (purgeableDeleted.Count > 0)
+            await userRepo.RemoveRangeAsync(purgeableDeleted, ct);
+
+        if (expiredPending.Count == 0 && purgeableDeleted.Count == 0) return;
+
         await uow.SaveChangesAsync(ct);
-        logger.LogInformation("UnverifiedUserCleanupWorker soft-deleted {Count} expired unverified account(s)", expired.Count);
+        logger.LogInformation(
+            "UnverifiedUserCleanupWorker processed expired unverified accounts: soft-deleted {SoftDeletedCount}, hard-deleted {HardDeletedCount}",
+            expiredPending.Count,
+            purgeableDeleted.Count);
     }
 }

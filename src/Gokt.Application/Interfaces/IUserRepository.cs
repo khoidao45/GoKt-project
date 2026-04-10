@@ -14,4 +14,6 @@ public interface IUserRepository
     Task<IEnumerable<User>> GetAllAsync(int page, int pageSize, CancellationToken ct = default);
     Task<int> CountAsync(CancellationToken ct = default);
     Task<IReadOnlyList<User>> GetExpiredUnverifiedAsync(DateTime cutoffUtc, CancellationToken ct = default);
+    Task<IReadOnlyList<User>> GetExpiredDeletedUnverifiedAsync(DateTime cutoffUtc, CancellationToken ct = default);
+    Task RemoveRangeAsync(IEnumerable<User> users, CancellationToken ct = default);
 }

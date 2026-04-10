@@ -23,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DriverWallet> DriverWallets => Set<DriverWallet>();
     public DbSet<DriverWalletTransaction> DriverWalletTransactions => Set<DriverWalletTransaction>();
     public DbSet<DriverDailyKpi> DriverDailyKpis => Set<DriverDailyKpi>();
+    public DbSet<TripMessage> TripMessages => Set<TripMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

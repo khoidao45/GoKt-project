@@ -15,13 +15,13 @@ public class EmailService(IConfiguration configuration, ILogger<EmailService> lo
 
     public async Task SendVerificationEmailAsync(string toEmail, string rawToken, Guid userId, CancellationToken ct = default)
     {
-        var link = $"{_appUrl}/api/v1/auth/verify-email?userId={userId}&token={Uri.EscapeDataString(rawToken)}";
         var subject = "Verify your Gokt account";
         var body = $"""
             <h2>Welcome to Gokt!</h2>
-            <p>Please verify your email address by clicking the link below:</p>
-            <p><a href="{link}" style="background:#4CAF50;color:white;padding:12px 24px;text-decoration:none;border-radius:4px;">Verify Email</a></p>
-            <p>This link expires in 10 minutes.</p>
+            <p>Use the verification code below to activate your account:</p>
+            <p style="font-size:28px;font-weight:700;letter-spacing:6px;margin:18px 0;"><code>{rawToken}</code></p>
+            <p>Open the verify screen in the app, enter your email and this code.</p>
+            <p>This code expires in 10 minutes and can only be used once.</p>
             <p>If you did not create an account, please ignore this email.</p>
             """;
 

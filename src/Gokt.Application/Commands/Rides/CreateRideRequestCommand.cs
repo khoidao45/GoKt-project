@@ -66,7 +66,7 @@ public sealed class CreateRideRequestCommandHandler(
         await rideRequestRepository.AddAsync(request, ct);
         await unitOfWork.SaveChangesAsync(ct);
 
-        _ = notificationService.SendAsync(cmd.CustomerId,
+        await notificationService.SendAsync(cmd.CustomerId,
             "Ride Requested", "Looking for a driver near you...",
             Domain.Enums.NotificationType.RideRequest, null, ct);
 

@@ -39,6 +39,10 @@ public sealed class UpdateTripStatusCommandHandler(
         if (trip.DriverId != driver.Id)
             throw new ForbiddenException("This trip does not belong to you.");
 
+        string? notificationTitle = null;
+        string? notificationBody = null;
+        NotificationType? notificationType = null;
+
         switch (cmd.NewStatus)
         {
             case TripStatus.DriverEnRoute:
@@ -46,19 +50,31 @@ public sealed class UpdateTripStatusCommandHandler(
                 break;
             case TripStatus.DriverArrived:
                 trip.SetDriverArrived();
-                _ = notificationService.SendAsync(trip.CustomerId,
-                    "Driver Arrived", "Your driver has arrived at the pickup location.",
-                    NotificationType.DriverArriving, null, ct);
+                notificationTitle = "Driver Arrived";
+                notificationBody = "Your driver has arrived at the pickup location.";
+                notificationType = NotificationType.DriverArriving;
                 break;
             case TripStatus.InProgress:
                 trip.Start();
-                _ = notificationService.SendAsync(trip.CustomerId,
-                    "Trip Started", "Your trip is now in progress.",
-                    NotificationType.TripStarted, null, ct);
+                notificationTitle = "Trip Started";
+                notificationBody = "Your trip is now in progress.";
+                notificationType = NotificationType.TripStarted;
                 break;
         }
 
         await unitOfWork.SaveChangesAsync(ct);
+
+        if (notificationType.HasValue && notificationTitle is not null && notificationBody is not null)
+        {
+            await notificationService.SendAsync(
+                trip.CustomerId,
+                notificationTitle,
+                notificationBody,
+                notificationType.Value,
+                null,
+                ct);
+        }
+
         return TripDto.From(trip);
     }
 }

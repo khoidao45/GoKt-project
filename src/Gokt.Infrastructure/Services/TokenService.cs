@@ -55,6 +55,12 @@ public class TokenService(IConfiguration configuration) : ITokenService
         return (raw, DateTime.UtcNow.AddDays(_refreshTokenDays));
     }
 
+    public string GenerateEmailVerificationCode()
+    {
+        var value = RandomNumberGenerator.GetInt32(0, 1_000_000);
+        return value.ToString("D6");
+    }
+
     public string GenerateSecureToken() =>
         Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 

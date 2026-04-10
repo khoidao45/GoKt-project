@@ -52,5 +52,29 @@ public class Vehicle
         SeatCount = seatCount;
     }
 
+    public void RequestUpdate(
+        string make,
+        string model,
+        int year,
+        string color,
+        string plateNumber,
+        int seatCount,
+        VehicleType vehicleType,
+        string? imageUrl)
+    {
+        Make = make;
+        Model = model;
+        Year = year;
+        Color = color;
+        PlateNumber = plateNumber.ToUpperInvariant();
+        SeatCount = seatCount;
+        VehicleType = vehicleType;
+        ImageUrl = imageUrl;
+
+        // Any changed vehicle details require admin re-verification.
+        IsVerified = false;
+        VerifiedAt = null;
+    }
+
     public void Deactivate() => IsActive = false;
 }

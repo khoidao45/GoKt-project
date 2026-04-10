@@ -1,3 +1,4 @@
+using Gokt.Application.DTOs;
 using Gokt.Application.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 
@@ -35,4 +36,10 @@ public class SignalRRealtimeService(IHubContext<RideHub> hubContext) : IRealtime
         Guid targetUserId, Guid rideRequestId, string reason, CancellationToken ct = default)
         => hubContext.Clients.Group($"customer:{targetUserId}")
             .SendAsync("RideCancelled", new { rideRequestId, reason }, ct);
+
+    public Task SendTripMessageAsync(
+        Guid driverId, Guid customerId, TripMessageDto message, CancellationToken ct = default)
+        => Task.WhenAll(
+            hubContext.Clients.Group($"driver:{driverId}").SendAsync("ReceiveMessage", message, ct),
+            hubContext.Clients.Group($"customer:{customerId}").SendAsync("ReceiveMessage", message, ct));
 }

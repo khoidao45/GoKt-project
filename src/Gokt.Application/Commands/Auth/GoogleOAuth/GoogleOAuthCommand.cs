@@ -54,6 +54,14 @@ public sealed class GoogleOAuthCommandHandler(
 
         // 1. Check existing OAuth link
         var existing = await oauthRepository.GetByProviderAsync("GOOGLE", providerUserId, ct);
+        if (existing != null && (existing.User.Status == UserStatus.Deleted || existing.User.DeletedAt != null))
+        {
+            // Cleanup stale provider linkage so login can relink/create a valid account.
+            await oauthRepository.RemoveAsync(existing, ct);
+            await unitOfWork.SaveChangesAsync(ct);
+            existing = null;
+        }
+
         User user;
 
         if (existing != null)

@@ -17,4 +17,10 @@ public class OAuthRepository(AppDbContext db) : IOAuthRepository
 
     public async Task AddAsync(OAuthAccount account, CancellationToken ct = default) =>
         await db.OAuthAccounts.AddAsync(account, ct);
+
+    public Task RemoveAsync(OAuthAccount account, CancellationToken ct = default)
+    {
+        db.OAuthAccounts.Remove(account);
+        return Task.CompletedTask;
+    }
 }

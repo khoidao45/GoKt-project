@@ -109,7 +109,7 @@ public sealed class AcceptRideRequestCommandHandler(
             ct);
 
         // DB push notification
-        _ = notificationService.SendAsync(rideRequest.CustomerId,
+        await notificationService.SendAsync(rideRequest.CustomerId,
             "Driver Found!", "A driver has accepted your ride request.",
             NotificationType.RideAccepted, null, ct);
 

@@ -5,6 +5,7 @@ namespace Gokt.Application.DTOs;
 
 public record VehicleDto(
     Guid Id,
+    Guid DriverId,
     string Make,
     string Model,
     int Year,
@@ -13,12 +14,13 @@ public record VehicleDto(
     int SeatCount,
     string? ImageUrl,
     VehicleType VehicleType,
+    bool IsActive,
     bool IsVerified,
     DateTime? VerifiedAt
 )
 {
     public static VehicleDto From(Vehicle v) =>
-        new(v.Id, v.Make, v.Model, v.Year, v.Color, v.PlateNumber, v.SeatCount, v.ImageUrl, v.VehicleType, v.IsVerified, v.VerifiedAt);
+        new(v.Id, v.DriverId, v.Make, v.Model, v.Year, v.Color, v.PlateNumber, v.SeatCount, v.ImageUrl, v.VehicleType, v.IsActive, v.IsVerified, v.VerifiedAt);
 }
 
 public record DriverDto(
@@ -26,18 +28,23 @@ public record DriverDto(
     Guid UserId,
     string FullName,
     string? AvatarUrl,
+    string? LicenseNumber,
+    DateTime? LicenseExpiry,
+    string? DriverCode,
     DriverStatus Status,
     decimal Rating,
     int TotalRides,
     bool IsOnline,
+    bool IsBusy,
     double? Latitude,
     double? Longitude,
     List<VehicleDto> Vehicles
 )
 {
     public static DriverDto From(Driver d, string fullName, string? avatarUrl = null) =>
-        new(d.Id, d.UserId, fullName, avatarUrl, d.Status, d.Rating, d.TotalRides,
-            d.IsOnline, d.CurrentLatitude, d.CurrentLongitude,
+        new(d.Id, d.UserId, fullName, avatarUrl, d.LicenseNumber, d.LicenseExpiry, d.DriverCode,
+            d.Status, d.Rating, d.TotalRides, d.IsOnline, d.IsBusy,
+            d.CurrentLatitude, d.CurrentLongitude,
             d.Vehicles.Select(VehicleDto.From).ToList());
 }
 
@@ -73,7 +80,12 @@ public record TripDto(
     Guid VehicleId,
     TripStatus Status,
     string PickupAddress,
+    double PickupLatitude,
+    double PickupLongitude,
     string DropoffAddress,
+    double DropoffLatitude,
+    double DropoffLongitude,
+    decimal? EstimatedDistanceKm,
     decimal? FinalFare,
     decimal? ActualDistanceKm,
     int? ActualDurationMinutes,
@@ -98,7 +110,12 @@ public record TripDto(
         new(t.Id, t.RideRequestId, t.DriverId, t.CustomerId, t.VehicleId,
             t.Status,
             t.RideRequest?.PickupAddress ?? string.Empty,
+            t.RideRequest?.PickupLatitude ?? 0,
+            t.RideRequest?.PickupLongitude ?? 0,
             t.RideRequest?.DropoffAddress ?? string.Empty,
+            t.RideRequest?.DropoffLatitude ?? 0,
+            t.RideRequest?.DropoffLongitude ?? 0,
+            t.RideRequest?.EstimatedDistanceKm,
             t.FinalFare, t.ActualDistanceKm, t.ActualDurationMinutes,
             t.AcceptedAt, t.StartedAt, t.CompletedAt, t.CancelledAt,
             t.CancellationReason, t.CustomerRating, t.DriverRating,
@@ -111,6 +128,15 @@ public record TripDto(
             t.Vehicle?.SeatCount,
             t.Vehicle?.ImageUrl);
 }
+
+public record TripMessageDto(
+    Guid Id,
+    Guid TripId,
+    Guid SenderId,
+    string SenderRole,
+    string Body,
+    DateTime SentAt
+);
 
 public record PriceEstimateDto(
     VehicleType VehicleType,

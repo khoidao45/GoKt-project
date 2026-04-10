@@ -55,9 +55,11 @@ public static class DependencyInjection
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IRideRequestRepository, RideRequestRepository>();
         services.AddScoped<ITripRepository, TripRepository>();
+        services.AddScoped<IDriverEarningsRepository, DriverEarningsRepository>();
         services.AddScoped<IPricingRepository, PricingRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IOutboxRepository, OutboxRepository>();
+        services.AddScoped<ITripMessageRepository, TripMessageRepository>();
 
         // Services
         services.AddScoped<ITokenService, TokenService>();

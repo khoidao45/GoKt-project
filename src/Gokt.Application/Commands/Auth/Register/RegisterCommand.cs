@@ -89,7 +89,7 @@ public sealed class RegisterCommandHandler(
         await unitOfWork.SaveChangesAsync(ct);
 
         // Store email verification token in Redis (10-minute TTL — short-lived, no DB column needed)
-        var rawToken = tokenService.GenerateSecureToken();
+        var rawToken = tokenService.GenerateEmailVerificationCode();
         await cacheService.SetAsync(
             $"email_verify:{user.Id}",
             tokenService.HashToken(rawToken),

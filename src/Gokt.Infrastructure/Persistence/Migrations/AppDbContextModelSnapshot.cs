@@ -587,7 +587,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000001"),
-                            CreatedAt = new DateTime(2026, 4, 8, 16, 53, 58, 838, DateTimeKind.Utc).AddTicks(8309),
+                            CreatedAt = new DateTime(2026, 4, 9, 16, 20, 5, 784, DateTimeKind.Utc).AddTicks(8146),
                             Description = "Can book trips",
                             IsSystem = true,
                             Name = "RIDER"
@@ -595,7 +595,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000002"),
-                            CreatedAt = new DateTime(2026, 4, 8, 16, 53, 58, 838, DateTimeKind.Utc).AddTicks(8327),
+                            CreatedAt = new DateTime(2026, 4, 9, 16, 20, 5, 784, DateTimeKind.Utc).AddTicks(8150),
                             Description = "Can accept and complete trips",
                             IsSystem = true,
                             Name = "DRIVER"
@@ -603,7 +603,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000003"),
-                            CreatedAt = new DateTime(2026, 4, 8, 16, 53, 58, 838, DateTimeKind.Utc).AddTicks(8328),
+                            CreatedAt = new DateTime(2026, 4, 9, 16, 20, 5, 784, DateTimeKind.Utc).AddTicks(8152),
                             Description = "Platform administrator",
                             IsSystem = true,
                             Name = "ADMIN"
@@ -611,7 +611,7 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                         new
                         {
                             Id = new Guid("a1a1a1a1-0000-0000-0000-000000000004"),
-                            CreatedAt = new DateTime(2026, 4, 8, 16, 53, 58, 838, DateTimeKind.Utc).AddTicks(8330),
+                            CreatedAt = new DateTime(2026, 4, 9, 16, 20, 5, 784, DateTimeKind.Utc).AddTicks(8153),
                             Description = "Customer support agent",
                             IsSystem = true,
                             Name = "SUPPORT"
@@ -699,6 +699,38 @@ namespace Gokt.Infrastructure.Persistence.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("Trips", (string)null);
+                });
+
+            modelBuilder.Entity("Gokt.Domain.Entities.TripMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SenderRole")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TripId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TripId", "SentAt");
+
+                    b.ToTable("TripMessages", (string)null);
                 });
 
             modelBuilder.Entity("Gokt.Domain.Entities.User", b =>

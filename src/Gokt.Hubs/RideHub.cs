@@ -1,7 +1,9 @@
 using Gokt.Application.Commands.Drivers.UpdateDriverLocation;
 using Gokt.Application.Commands.Rides.AcceptRideRequest;
 using Gokt.Application.Commands.Rides.DeclineRide;
+using Gokt.Application.Commands.Trips.SendTripMessage;
 using Gokt.Application.Interfaces;
+using Gokt.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -13,6 +15,7 @@ namespace Gokt.Hubs;
 public class RideHub(
     IMediator mediator,
     IDriverRepository driverRepository,
+    ITripRepository tripRepository,
     ILocationService locationService) : Hub
 {
     public override async Task OnConnectedAsync()
@@ -57,9 +60,34 @@ public class RideHub(
     public async Task SendLocation(double latitude, double longitude)
     {
         var userId = GetUserId();
-        if (!IsDriver()) return;
+        if (!await IsDriverAsync(userId)) return;
 
         await mediator.Send(new UpdateDriverLocationCommand(userId, latitude, longitude));
+    }
+
+    /// <summary>
+    /// Rider shares GPS location to the assigned driver during accepted/in-progress trip only.
+    /// </summary>
+    public async Task SendCustomerLocation(double latitude, double longitude)
+    {
+        var userId = GetUserId();
+        if (userId == Guid.Empty || await IsDriverAsync(userId)) return;
+
+        var activeTrip = await tripRepository.GetActiveByCustomerIdAsync(userId);
+        if (activeTrip is null) return;
+
+        var allowedStatuses = new[]
+        {
+            TripStatus.Accepted,
+            TripStatus.DriverEnRoute,
+            TripStatus.DriverArrived,
+            TripStatus.InProgress,
+        };
+
+        if (!allowedStatuses.Contains(activeTrip.Status)) return;
+
+        await Clients.Group($"driver:{activeTrip.DriverId}")
+            .SendAsync("CustomerLocationUpdate", new { latitude, longitude, updatedAt = DateTime.UtcNow });
     }
 
     /// <summary>
@@ -69,7 +97,7 @@ public class RideHub(
     public async Task AcceptRide(Guid rideRequestId)
     {
         var userId = GetUserId();
-        if (!IsDriver())
+        if (!await IsDriverAsync(userId))
         {
             await Clients.Caller.SendAsync("Error", "Only drivers can accept rides.");
             return;
@@ -92,9 +120,31 @@ public class RideHub(
     public async Task DeclineRide(Guid rideRequestId)
     {
         var userId = GetUserId();
-        if (!IsDriver()) return;
+        if (!await IsDriverAsync(userId)) return;
 
         await mediator.Send(new DeclineRideCommand(userId, rideRequestId));
+    }
+
+    /// <summary>
+    /// Either rider or driver sends a message during an active trip.
+    /// The message is persisted and pushed to both participants via SignalR.
+    /// </summary>
+    public async Task SendMessage(Guid tripId, string body)
+    {
+        var userId = GetUserId();
+        if (userId == Guid.Empty) return;
+
+        try
+        {
+            var msg = await mediator.Send(new SendTripMessageCommand(userId, tripId, body));
+            // Caller already receives it via the group broadcast in the handler,
+            // but send a confirmation back so the sender's own message renders.
+            await Clients.Caller.SendAsync("MessageSent", msg);
+        }
+        catch (Exception ex)
+        {
+            await Clients.Caller.SendAsync("Error", ex.Message);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -106,6 +156,10 @@ public class RideHub(
         return Guid.TryParse(sub, out var id) ? id : Guid.Empty;
     }
 
-    private bool IsDriver() =>
-        Context.User?.IsInRole("DRIVER") ?? false;
+    private async Task<bool> IsDriverAsync(Guid userId)
+    {
+        if (userId == Guid.Empty) return false;
+        var driver = await driverRepository.GetByUserIdAsync(userId);
+        return driver is not null;
+    }
 }

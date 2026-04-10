@@ -16,6 +16,7 @@ namespace Gokt.Controllers;
 public class AdminController(
     IUserRepository userRepository,
     IDriverRepository driverRepository,
+    IVehicleRepository vehicleRepository,
     ITripRepository tripRepository,
     IPricingRepository pricingRepository,
     IRoleRepository roleRepository,
@@ -141,6 +142,21 @@ public class AdminController(
         return NoContent();
     }
 
+    // PUT /api/v1/admin/vehicles/{id}/approve
+    [HttpPut("vehicles/{id:guid}/approve")]
+    [ProducesResponseType(typeof(VehicleDto), 200)]
+    public async Task<IActionResult> ApproveVehicle(Guid id, CancellationToken ct)
+    {
+        var vehicle = await vehicleRepository.GetByIdAsync(id, ct)
+            ?? throw new NotFoundException("Vehicle", id);
+
+        vehicle.Verify();
+        await vehicleRepository.UpdateAsync(vehicle, ct);
+        await unitOfWork.SaveChangesAsync(ct);
+
+        return Ok(VehicleDto.From(vehicle));
+    }
+
     // GET /api/v1/admin/trips?page=1&pageSize=20
     [HttpGet("trips")]
     [ProducesResponseType(typeof(PagedResult<TripDto>), 200)]
@@ -212,6 +228,9 @@ public record AdminDriverDto(
     decimal Rating,
     int TotalRides,
     bool IsOnline,
+    bool IsBusy,
+    double? Latitude,
+    double? Longitude,
     List<VehicleDto> Vehicles,
     DateTime CreatedAt
 )
@@ -233,6 +252,9 @@ public record AdminDriverDto(
             d.Rating,
             d.TotalRides,
             d.IsOnline,
+            d.IsBusy,
+            d.CurrentLatitude,
+            d.CurrentLongitude,
             d.Vehicles.Select(VehicleDto.From).ToList(),
             d.CreatedAt
         );

@@ -4,6 +4,7 @@ import type {
   AdminStatsDto,
   AuthTokensDto,
   DriverDto,
+  DriverDailyEarningsDto,
   NotificationDto,
   PagedResult,
   PriceEstimateDto,
@@ -11,6 +12,7 @@ import type {
   RegisterResultDto,
   RideRequestDto,
   TripDto,
+  TripMessageDto,
   UserDto,
   VehicleDto,
 } from './types'
@@ -185,6 +187,12 @@ export const rides = {
 export const tripsApi = {
   history: (page = 1, pageSize = 10) =>
     request<TripDto[]>(`/trips/history?page=${page}&pageSize=${pageSize}`),
+
+  getMessages: (tripId: string) =>
+    request<TripMessageDto[]>(`/trips/${tripId}/messages`),
+
+  sendMessage: (tripId: string, body: string) =>
+    request<TripMessageDto>(`/trips/${tripId}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
 }
 
 // ─── Drivers ─────────────────────────────────────────────────────────────────
@@ -204,6 +212,14 @@ export const driversApi = {
     body: JSON.stringify({ ...data, vehicleType: toVehicleTypeInt(data.vehicleType) }),
   }),
 
+  requestVehicleUpdate: (vehicleId: string, data: {
+    make: string; model: string; year: number; color: string
+    plateNumber: string; seatCount: number; imageUrl?: string; vehicleType: string
+  }) => request<VehicleDto>(`/drivers/vehicles/${vehicleId}/request-update`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...data, vehicleType: toVehicleTypeInt(data.vehicleType) }),
+  }),
+
   me: () => request<DriverDto | null>('/drivers/me').catch(e => {
     if (e instanceof Error && e.message.includes('404')) return null
     throw e
@@ -217,6 +233,12 @@ export const driversApi = {
 
   trips: (page = 1, pageSize = 20) =>
     request<TripDto[]>(`/drivers/trips?page=${page}&pageSize=${pageSize}`),
+
+  dailyEarnings: () =>
+    request<DriverDailyEarningsDto>('/drivers/earnings/today').catch((e) => {
+      if (e instanceof Error && e.message.includes('404')) return null
+      throw e
+    }),
 }
 
 // ─── Trips (driver actions) ───────────────────────────────────────────────────
@@ -260,6 +282,9 @@ export const adminApi = {
 
   suspendDriver: (id: string) =>
     request<void>(`/admin/drivers/${id}/suspend`, { method: 'PUT' }),
+
+  approveVehicle: (id: string) =>
+    request<VehicleDto>(`/admin/vehicles/${id}/approve`, { method: 'PUT' }),
 
   trips: (page = 1, pageSize = 20) =>
     request<PagedResult<TripDto>>(`/admin/trips?page=${page}&pageSize=${pageSize}`),

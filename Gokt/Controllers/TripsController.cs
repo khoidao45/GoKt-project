@@ -1,8 +1,10 @@
 using Gokt.Application.Commands.Trips.CompleteTrip;
 using Gokt.Application.Commands.Trips.RateTrip;
+using Gokt.Application.Commands.Trips.SendTripMessage;
 using Gokt.Application.Commands.Trips.UpdateTripStatus;
 using Gokt.Application.DTOs;
 using Gokt.Application.Queries.GetTripHistory;
+using Gokt.Application.Queries.GetTripMessages;
 using Gokt.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -54,6 +56,24 @@ public class TripsController(IMediator mediator) : ControllerBase
         return Ok(result);
     }
 
+    // GET /api/v1/trips/{id}/messages
+    [HttpGet("{id:guid}/messages")]
+    [ProducesResponseType(typeof(IEnumerable<TripMessageDto>), 200)]
+    public async Task<IActionResult> GetMessages(Guid id, CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetTripMessagesQuery(CurrentUserId, id), ct);
+        return Ok(result);
+    }
+
+    // POST /api/v1/trips/{id}/messages
+    [HttpPost("{id:guid}/messages")]
+    [ProducesResponseType(typeof(TripMessageDto), 200)]
+    public async Task<IActionResult> SendMessage(Guid id, [FromBody] SendMessageRequest req, CancellationToken ct)
+    {
+        var result = await mediator.Send(new SendTripMessageCommand(CurrentUserId, id, req.Body), ct);
+        return Ok(result);
+    }
+
     private Guid CurrentUserId =>
         Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? throw new UnauthorizedAccessException("User ID claim not found."));
@@ -62,3 +82,4 @@ public class TripsController(IMediator mediator) : ControllerBase
 public record UpdateStatusRequest(TripStatus Status);
 public record CompleteTripRequest(decimal ActualDistanceKm);
 public record RateTripRequest(int Rating, string? Comment);
+public record SendMessageRequest(string Body);

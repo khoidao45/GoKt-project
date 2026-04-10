@@ -21,4 +21,13 @@ public class VehicleRepository(AppDbContext db) : IVehicleRepository
 
     public Task<bool> ExistsByPlateNumberAsync(string plateNumber, CancellationToken ct = default) =>
         db.Vehicles.AnyAsync(v => v.PlateNumber == plateNumber.ToUpperInvariant(), ct);
+
+    public Task<bool> ExistsByPlateNumberExceptAsync(string plateNumber, Guid vehicleId, CancellationToken ct = default) =>
+        db.Vehicles.AnyAsync(v => v.Id != vehicleId && v.PlateNumber == plateNumber.ToUpperInvariant(), ct);
+
+    public Task UpdateAsync(Vehicle vehicle, CancellationToken ct = default)
+    {
+        db.Vehicles.Update(vehicle);
+        return Task.CompletedTask;
+    }
 }

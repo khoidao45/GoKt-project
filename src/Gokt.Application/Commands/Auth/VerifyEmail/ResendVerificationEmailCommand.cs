@@ -26,7 +26,7 @@ public sealed class ResendVerificationEmailCommandHandler(
         if (user.Status is UserStatus.Deleted or UserStatus.Suspended)
             throw new ForbiddenException("Account is not eligible for email verification.");
 
-        var rawToken = tokenService.GenerateSecureToken();
+        var rawToken = tokenService.GenerateEmailVerificationCode();
         await cacheService.SetAsync(
             $"email_verify:{user.Id}",
             tokenService.HashToken(rawToken),

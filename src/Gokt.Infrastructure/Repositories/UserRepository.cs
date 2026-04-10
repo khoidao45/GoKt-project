@@ -64,4 +64,23 @@ public class UserRepository(AppDbContext db) : IUserRepository
                 && u.Status == UserStatus.PendingVerification
                 && u.CreatedAt <= cutoffUtc)
             .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<User>> GetExpiredDeletedUnverifiedAsync(DateTime cutoffUtc, CancellationToken ct = default) =>
+        await db.Users
+            .Include(u => u.Profile)
+            .Include(u => u.Security)
+            .Where(u => u.DeletedAt != null
+                && !u.EmailVerified
+                && u.Status == UserStatus.Deleted
+                && u.DeletedAt <= cutoffUtc
+                && !db.RideRequests.Any(r => r.CustomerId == u.Id)
+                && !db.Trips.Any(t => t.CustomerId == u.Id)
+                && !db.Drivers.Any(d => d.UserId == u.Id))
+            .ToListAsync(ct);
+
+    public Task RemoveRangeAsync(IEnumerable<User> users, CancellationToken ct = default)
+    {
+        db.Users.RemoveRange(users);
+        return Task.CompletedTask;
+    }
 }

@@ -54,7 +54,7 @@ public sealed class CompleteTripCommandHandler(
         // Mark driver available in Redis hot-path
         await locationService.MarkDriverAvailableAsync(driver.Id, ct);
 
-        _ = notificationService.SendAsync(trip.CustomerId,
+        await notificationService.SendAsync(trip.CustomerId,
             "Trip Completed", $"Your trip is complete. Fare: {finalFare:C}",
             NotificationType.TripCompleted, null, ct);
 

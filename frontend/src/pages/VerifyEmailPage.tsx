@@ -40,6 +40,12 @@ export default function VerifyEmailPage() {
       return
     }
 
+    if (!/^\d{6}$/.test(manualToken)) {
+      setStatus('error')
+      setMessage('Mã xác thực phải gồm đúng 6 chữ số.')
+      return
+    }
+
     setBusy(true)
     setStatus('loading')
     try {
@@ -124,8 +130,10 @@ export default function VerifyEmailPage() {
                 <input
                   type="text"
                   value={manualToken}
-                  onChange={(e) => setManualToken(e.target.value)}
-                  placeholder="Dán mã token từ email"
+                  onChange={(e) => setManualToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="Nhập mã 6 số từ email"
+                  inputMode="numeric"
+                  maxLength={6}
                   required
                 />
               </div>
