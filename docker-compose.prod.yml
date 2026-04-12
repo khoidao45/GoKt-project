@@ -76,7 +76,7 @@ services:
       Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
       SendGrid__ApiKey: ${SendGrid__ApiKey:-}
-      SendGrid__FromEmail: ${SendGrid__FromEmail:-noreply@gokt.app}
+      SendGrid__FromEmail: ${SendGrid__FromEmail:-minhkhoidao18@gmail.com}
       SendGrid__FromName: ${SendGrid__FromName:-Gokt}
       App__BaseUrl: ${APP_BASE_URL}
     restart: unless-stopped
