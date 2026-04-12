@@ -1,173 +1,154 @@
-🚀 Gokt — Ride Hailing Backend (Production-Ready)
-📌 Overview
+# Gokt — Ride Hailing Platform
 
-Gokt is a production-grade ride-hailing backend system inspired by Grab/Uber architecture, built with:
+A production-grade ride-hailing system inspired by Grab/Uber, built with Clean Architecture, event-driven design, and real-time communication.
 
+**Live Demo:** [https://gokt.minhkhoidao.id.vn](https://gokt.minhkhoidao.id.vn)
+
+---
+
+## Demo Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@gokt.vn | Admin@123456 |
+| Rider | Register a new account | — |
+| Driver | Register via Admin panel | — |
+
+> Admin can manage drivers, view trips, monitor live map, and replay failed events.
+
+---
+
+## Tech Stack
+
+**Backend**
+- .NET 8 / ASP.NET Core Web API
+- PostgreSQL + Entity Framework Core 8
+- Redis — caching, rate limiting, geolocation, SignalR backplane
+- Apache Kafka — event streaming between API and MatchingWorker
+- SignalR — real-time ride updates and driver tracking
+- MediatR — CQRS pattern
+- Serilog — structured logging
+- SendGrid — email verification
+- Google OAuth2 — social login
+- Argon2 — password hashing
+- Polly — retry policies
+
+**Frontend**
+- React 19 + TypeScript + Vite
+- Leaflet — interactive maps
+- SignalR client — real-time updates
+
+**DevOps**
+- Docker + Docker Compose
+- Jenkins CI/CD — automated test → build → push → deploy pipeline
+- Azure Container Registry (ACR)
+- Azure VM (Ubuntu)
+- Nginx — reverse proxy + SSL termination
+- Let's Encrypt — HTTPS
+
+---
+
+## Architecture
+
+```
 Clean Architecture
-Event-driven design (Kafka)
-Outbox Pattern (reliable messaging)
-Redis (real-time + rate limiting)
-SignalR (real-time communication)
-Background Workers
-🧱 Architecture
-API Layer (Gokt)
+  Gokt (API)
     ↓
-Application Layer (Commands, Handlers, Interfaces)
+  Gokt.Application  (Commands, Handlers — CQRS via MediatR)
     ↓
-Domain Layer (Entities, Enums, Business Rules)
+  Gokt.Domain       (Entities, Business Rules)
     ↓
-Infrastructure Layer (EF Core, Kafka, Redis, Outbox, Workers)
-⚙️ Tech Stack
-.NET 8 / ASP.NET Core
-PostgreSQL
-Redis
-Kafka (Confluent.Kafka)
-SignalR
-MediatR
-Serilog
-Docker
-🔥 Key Features
-🚗 Ride Request Flow
-User creates ride request
-Stored in DB
-Event written to Outbox
-Published to Kafka
-MatchingWorker assigns driver
-📦 Outbox Pattern (Core Reliability)
+  Gokt.Infrastructure (EF Core, Kafka, Redis, Outbox, Workers)
 
-Ensures:
+Gokt.MatchingWorker (Kafka consumer — runs 2 replicas in production)
+```
 
-No event loss
-Atomic DB + event write
-Retry on failure
-Eventual consistency
-🔁 Outbox Processing
-Background worker polls pending events
-Publishes to Kafka
-Handles retries
-Marks events as:
-Pending
-Processed
-Failed
-☠️ Dead Letter Queue (DLQ)
-Failed events are sent to DLQ topic
-Enables debugging & recovery
-🔄 Replay Mechanism
-Admin can replay failed events
-Resets event state:
-Failed → Pending
-Worker re-processes automatically
-🧠 Matching System
-Auto matching (scoring)
-Driver code matching (manual override)
-Cooldown system (Redis)
-⚡ Real-time Updates
-SignalR Hub
-Redis backplane
-Push updates to:
-Users
-Drivers
-📁 Project Structure
+---
+
+## Key Features
+
+**Ride Flow**
+1. User creates ride request → saved to DB
+2. Event written to Outbox atomically
+3. OutboxProcessor publishes to Kafka
+4. MatchingWorker consumes event → assigns nearest driver
+5. SignalR pushes real-time updates to both user and driver
+
+**Outbox Pattern**
+- Guarantees no event loss even if Kafka is down
+- Atomic DB + event write
+- Retry with max 5 attempts → Dead Letter Queue on failure
+- Admin can replay failed events via API
+
+**Matching System**
+- Auto matching by distance scoring
+- Driver code matching (manual override)
+- Redis-backed cooldown system
+
+**Background Workers**
+- `OutboxProcessor` — publishes pending events to Kafka
+- `RideExpiryWorker` — auto-cancels expired ride requests
+- `DriverDailyPayrollWorker` — calculates daily driver earnings
+- `UnverifiedUserCleanupWorker` — removes unverified accounts
+
+---
+
+## CI/CD Pipeline
+
+```
+GitHub push
+    ↓
+Jenkins (on Azure VM)
+    ├── dotnet test
+    ├── npm ci + vite build
+    ├── az login + acr login
+    ├── docker build + push → ACR
+    └── SSH deploy → docker compose up
+```
+
+---
+
+## Project Structure
+
+```
 src/
-  Gokt.Domain/
-    Entities/
-    Enums/
+  Gokt.Domain/          # Entities, Enums, Business Rules
+  Gokt.Application/     # Commands, Queries, Handlers (CQRS)
+  Gokt.Infrastructure/  # EF Core, Kafka, Redis, Workers
+  Gokt.MatchingWorker/  # Kafka consumer + matching logic
+  Gokt.Hubs/            # SignalR hub definitions
 
-  Gokt.Application/
-    Commands/
-    Interfaces/
-    Events/
-
-  Gokt.Infrastructure/
-    Persistence/
-    Messaging/
-    Repositories/
-    BackgroundServices/
-
-  Gokt.MatchingWorker/
-    Kafka consumers
-    Matching logic
-
-Gokt/
+Gokt/                   # ASP.NET Core API entry point
   Controllers/
+  Middleware/
   Program.cs
-🗄️ Database
-OutboxEvents Table
-Column	Description
-Id	Event ID
-Type	Event type
-Payload	JSON data
-Status	Pending / Processed / Failed
-RetryCount	Retry attempts
-CreatedAt	Created time
-ProcessedAt	Processed time
-LastError	Error message
-🔄 Event Flow
-Client → API → DB (Ride + Outbox)
-                     ↓
-             OutboxProcessor
-                     ↓
-                 Kafka
-                     ↓
-            MatchingWorker
-                     ↓
-              Driver assigned
-🚀 Getting Started
-1. Run Infrastructure
-docker-compose up -d
-2. Apply Migration
-dotnet ef database update
-3. Run Services
+
+frontend/               # React + TypeScript
+tests/
+  Gokt.Domain.Tests/
+  Gokt.Infrastructure.Tests/
+```
+
+---
+
+## Local Development
+
+```bash
+# Start infrastructure
+docker compose up -d
+
+# Run API
 dotnet run --project Gokt
-dotnet run --project Gokt.MatchingWorker
-🧪 Test Scenarios
-✅ Kafka Down
-Create ride request
-Event saved in Outbox (Pending)
-✅ Kafka Recovery
-Worker retries
-Event published
-Status → Processed
-❌ Failure Case
-Retry > 5
-Status → Failed
-Event sent to DLQ
-🔁 Replay
-POST /outbox/replay/{id}
-📊 Production Considerations
-✅ Implemented
-Outbox Pattern
-Retry mechanism
-DLQ
-Idempotent producer
-SKIP LOCKED concurrency
-⚠️ Recommended Next
-Inbox Pattern (consumer deduplication)
-Metrics (Prometheus / Grafana)
-Outbox cleanup job
-Event versioning
-Saga orchestration
-💡 Design Principles
-Event-driven architecture
-Eventually consistent system
-Resilient to failure
-Scalable horizontally
-Clean separation of concerns
-🎯 Status
 
-✅ Production-ready (MVP level)
-🚀 Ready for scaling & advanced features
+# Run MatchingWorker
+dotnet run --project src/Gokt.MatchingWorker
 
-👨‍💻 Author
+# Run Frontend
+cd frontend && npm install && npm run dev
+```
 
-Built as a learning + production-grade system for mastering:
+---
 
-Distributed systems
-Event-driven architecture
-Real-time backend design
+## Author
 
-## CI/CD Deployment (Azure VM)
-
-For production deployment with Jenkins + Azure VM + Docker Compose, see:
-
-- `docs/deploy-azure-vm-jenkins.md`
+Đào Minh Khôi — Built as a learning + production-grade project for mastering distributed systems, event-driven architecture, and real-time backend design.
