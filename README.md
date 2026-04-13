@@ -2,7 +2,7 @@
 
 A production-grade ride-hailing system inspired by Grab/Uber, built with Clean Architecture, event-driven design, and real-time communication.
 
-**Live Demo:** [https://gokt.minhkhoidao.id.vn](https://gokt.minhkhoidao.id.vn)
+**Live Demo:** [https://gokt.minhkhoidao.id.vn](https://gokt.minhkhoidao.id.vn) | **Jenkins:** [https://jenkins.minhkhoidao.id.vn](https://jenkins.minhkhoidao.id.vn)
 
 ---
 
